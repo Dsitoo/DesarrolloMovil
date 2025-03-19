@@ -19,6 +19,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus.flowables import HRFlowable  # Añadir esta importación
 from datetime import datetime
 import os
 from kivy.utils import platform
@@ -343,8 +344,8 @@ class CotizacionScreen(Screen):
 
         # Configurar el documento
         doc = SimpleDocTemplate(filename, pagesize=letter,
-                              rightMargin=30, leftMargin=30,
-                              topMargin=30, bottomMargin=30)
+                              rightMargin=50, leftMargin=50,
+                              topMargin=50, bottomMargin=50)
         elements = []
 
         # Estilos personalizados
@@ -353,17 +354,18 @@ class CotizacionScreen(Screen):
             'CustomTitle',
             parent=styles['Heading1'],
             textColor=colors.HexColor('#1E3A5F'),
-            spaceAfter=30,
+            spaceAfter=40,
             fontSize=24,
             alignment=1  # Centrado
         )
 
-        subtitle_style = ParagraphStyle(
-            'CustomSubtitle',
+        ambiente_style = ParagraphStyle(
+            'AmbienteStyle',
             parent=styles['Heading2'],
             textColor=colors.HexColor('#2E4D7B'),
-            spaceAfter=20,
-            fontSize=16
+            spaceAfter=15,
+            fontSize=14,
+            spaceBefore=20
         )
 
         total_style = ParagraphStyle(
@@ -376,58 +378,66 @@ class CotizacionScreen(Screen):
 
         # Título y fecha
         elements.append(Paragraph("Cotización de Productos", title_style))
-        elements.append(Paragraph(f"Fecha: {datetime.now().strftime('%d/%m/%Y')}", subtitle_style))
-        
-        # Datos de la tabla con formato mejorado
-        table_data = [['Ambiente'] + [p['nombre'] for p in self.productos]]
-        
+        elements.append(Paragraph(f"Fecha: {datetime.now().strftime('%d/%m/%Y')}", ambiente_style))
+        elements.append(Spacer(1, 20))
+
+        # Obtener datos por ambiente y ordenarlos de forma ascendente
         filas = [widget for widget in self.ids.tabla_container.children 
                 if isinstance(widget, GridLayout)][:-1]
+        filas.reverse()  # Invertir el orden para que sea ascendente
         
-        totales_por_producto = {p['nombre']: {'cantidad': 0, 'total': 0} for p in self.productos}
-        
+        # Para cada ambiente
         for fila in filas:
             ambiente = fila.children[-1].text
             inputs = [widget for widget in fila.children if isinstance(widget, TextInput)]
             inputs.reverse()
-            row_data = [ambiente]
+            
+            # Solo procesar ambientes que tengan productos seleccionados
+            productos_ambiente = []
+            subtotal_ambiente = 0
             
             for input_widget, producto in zip(inputs, self.productos):
                 cantidad = int(input_widget.text or '0')
-                row_data.append(str(cantidad))
-                
                 if cantidad > 0:
-                    totales_por_producto[producto['nombre']]['cantidad'] += cantidad
-                    totales_por_producto[producto['nombre']]['total'] += cantidad * producto['costo']
+                    subtotal_producto = cantidad * int(producto['costo'])
+                    productos_ambiente.append([
+                        producto['nombre'],
+                        str(cantidad),
+                        f"${int(producto['costo']):,}",
+                        f"${subtotal_producto:,}"
+                    ])
+                    subtotal_ambiente += subtotal_producto
             
-            table_data.append(row_data)
+            if productos_ambiente:
+                # Título del ambiente
+                elements.append(Paragraph(f"Resumen {ambiente}", ambiente_style))
+                
+                # Tabla del ambiente
+                data = [['Producto', 'Cantidad', 'Valor Unit.', 'Subtotal']] + productos_ambiente
+                table = Table(data, colWidths=[200, 80, 100, 100])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E4D7B')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#2E4D7B')),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F8FB')),
+                ]))
+                elements.append(table)
+                elements.append(Paragraph(f"Subtotal {ambiente}: ${subtotal_ambiente:,}", total_style))
+                elements.append(Spacer(1, 10))
 
-        # Resumen de productos
-        elements.append(Paragraph("Resumen por Producto:", subtitle_style))
-        resumen_data = [['Producto', 'Cantidad', 'Valor Unitario', 'Total']]
-        for producto in self.productos:
-            if totales_por_producto[producto['nombre']]['cantidad'] > 0:
-                resumen_data.append([
-                    producto['nombre'],
-                    str(totales_por_producto[producto['nombre']]['cantidad']),
-                    f"${producto['costo']:,}",
-                    f"${totales_por_producto[producto['nombre']]['total']:,}"
-                ])
+        # Línea divisoria
+        elements.append(HRFlowable(
+            width="100%",
+            thickness=1,
+            color=colors.HexColor('#2E4D7B'),
+            spaceBefore=20,
+            spaceAfter=20
+        ))
 
-        resumen_table = Table(resumen_data, colWidths=[200, 80, 100, 100])
-        resumen_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E4D7B')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#2E4D7B')),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F8FB')),
-        ]))
-        elements.append(resumen_table)
-        elements.append(Spacer(1, 20))
-
-        # Totales
+        # Totales finales
         subtotal = float(self.ids.valor_plan.text.replace('$', '').replace(',', ''))
         iva = float(self.ids.valor_iva.text.replace('$', '').replace(',', ''))
         total = float(self.ids.valor_total.text.replace('$', '').replace(',', ''))
