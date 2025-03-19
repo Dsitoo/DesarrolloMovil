@@ -1,0 +1,472 @@
+<LoadingScreen>:
+    logo: logo
+    FloatLayout:
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        Image:
+            id: logo
+            source: 'img/logo_colvatel.jpg'
+            opacity: 0
+            size_hint: 0.5, 0.5
+            pos_hint: {'center_x': 0.5, 'center_y': 0.6}
+            
+        Label:
+            text: 'Colva APP'
+            color: 0, 0, 0, 1
+            size_hint: 0.8, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5, 'center_y': 0.3}
+            font_size: '24sp'
+            bold: True
+
+<LoginScreen>:
+    BoxLayout:
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                
+        orientation: 'vertical'
+        padding: '20dp'
+        spacing: '20dp'
+        
+        Image:
+            source: 'img/logo_colvatel.jpg'
+            size_hint: None, None
+            size: '100dp', '100dp'
+            pos_hint: {'center_x': 0.5}
+        
+        Widget:
+            size_hint_y: 0.1
+        
+        Label:
+            text: 'Número de Identificación'
+            color: 0, 0, 0, 1
+            size_hint: 0.8, None
+            height: '20dp'
+            pos_hint: {'center_x': 0.2}
+            halign: 'left'
+            
+        BoxLayout:
+            size_hint: 0.8, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            spacing: '10dp'
+            
+            Image:
+                source: 'img/user_icon.png'
+                size_hint_x: None
+                width: self.height
+            
+            TextInput:
+                id: id_input
+                hint_text: 'Número de Identificación'
+                multiline: False
+        
+        Label:
+            text: 'Contraseña'
+            color: 0, 0, 0, 1
+            size_hint: 0.8, None
+            height: '20dp'
+            pos_hint: {'center_x': 0.2} 
+            halign: 'left'
+            
+        BoxLayout:
+            size_hint: 0.8, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            spacing: '10dp'
+            
+            Image:
+                source: 'img/password_icon.png'
+                size_hint_x: None
+                width: self.height
+            
+            TextInput:
+                id: password_input
+                hint_text: 'Contraseña'
+                password: True
+                multiline: False
+        
+        Button:
+            text: 'Ingresar'
+            size_hint: 0.5, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            on_press: root.on_login_press()
+            background_color: 0.2, 0.6, 1, 1
+        
+        Widget:
+            size_hint_y: 0.1
+        
+        Label:
+            text: '¿No tienes una cuenta?, crear una'
+            color: 0.2, 0.6, 1, 1
+            size_hint_y: None
+            height: '40dp'
+            on_touch_down: if self.collide_point(*args[1].pos): root.on_create_account_press()
+
+<RegisterScreen>:
+    BoxLayout:
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                
+        orientation: 'vertical'
+        padding: '20dp'
+        spacing: '20dp'
+        
+        Label:
+            text: 'Registro de Usuario'
+            color: 0, 0, 0, 1
+            font_size: '24sp'
+            size_hint_y: None
+            height: '40dp'
+        
+        Label:
+            text: 'Nombre de Usuario'
+            color: 0, 0, 0, 1
+            size_hint: 0.8, None
+            height: '20dp'
+            pos_hint: {'center_x': 0.2}
+            halign: 'left'
+            
+        TextInput:
+            id: reg_username
+            hint_text: 'Ingrese su nombre'
+            size_hint: 0.8, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            multiline: False
+            
+        Label:
+            text: 'Número de Identificación'
+            color: 0, 0, 0, 1
+            size_hint: 0.8, None
+            height: '20dp'
+            pos_hint: {'center_x': 0.2}
+            halign: 'left'
+            
+        TextInput:
+            id: reg_id_number
+            hint_text: 'Ingrese su número de identificación'
+            size_hint: 0.8, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            multiline: False
+            
+        Label:
+            text: 'Contraseña'
+            color: 0, 0, 0, 1
+            size_hint: 0.8, None
+            height: '20dp'
+            pos_hint: {'center_x': 0.2}
+            halign: 'left'
+            
+        TextInput:
+            id: reg_password
+            hint_text: 'Ingrese su contraseña'
+            size_hint: 0.8, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            password: True
+            multiline: False
+            
+        Label:
+            text: 'Confirmar Contraseña'
+            color: 0, 0, 0, 1
+            size_hint: 0.8, None
+            height: '20dp'
+            pos_hint: {'center_x': 0.2}
+            halign: 'left'
+            
+        TextInput:
+            id: reg_confirm_password
+            hint_text: 'Confirme su contraseña'
+            size_hint: 0.8, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            password: True
+            multiline: False
+            
+        Button:
+            text: 'Registrarse'
+            size_hint: 0.5, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            on_press: root.on_register_press()
+            background_color: 0.2, 0.6, 1, 1
+            
+        Button:
+            text: 'Volver'
+            size_hint: 0.5, None
+            height: '40dp'
+            pos_hint: {'center_x': 0.5}
+            on_press: app.root.current = 'login'
+            background_color: 0.8, 0.8, 0.8, 1
+
+<ProductoRow@BoxLayout>:
+    nombre: ''
+    unidades: ''
+    costo: ''
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: '40dp'
+    padding: '10dp'
+    
+    Label:
+        text: root.nombre
+        size_hint_x: 0.5
+        color: 0, 0, 0, 1
+        text_size: self.size
+        halign: 'left'
+        valign: 'middle'
+    
+    Label:
+        text: root.unidades
+        size_hint_x: 0.25
+        color: 0, 0, 0, 1
+        text_size: self.size
+        halign: 'center'
+        valign: 'middle'
+    
+    Label:
+        text: root.costo
+        size_hint_x: 0.25
+        color: 0, 0, 0, 1
+        text_size: self.size
+        halign: 'right'
+        valign: 'middle'
+
+<PrincipalScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '20dp'
+        spacing: '10dp'
+        
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        Label:
+            text: 'Productos Disponibles'
+            color: 0, 0, 0, 1
+            size_hint_y: None
+            height: '50dp'
+            font_size: '24sp'
+            bold: True
+        
+        BoxLayout:
+            size_hint_y: None
+            height: '40dp'
+            padding: '10dp'
+            
+            Label:
+                text: 'Nombre del Producto'
+                size_hint_x: 0.5
+                color: 0, 0, 0, 1
+                bold: True
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+            
+            Label:
+                text: 'Unidades'
+                size_hint_x: 0.25
+                color: 0, 0, 0, 1
+                bold: True
+                text_size: self.size
+                halign: 'center'
+                valign: 'middle'
+            
+            Label:
+                text: 'Costo'
+                size_hint_x: 0.25
+                color: 0, 0, 0, 1
+                bold: True
+                text_size: self.size
+                halign: 'right'
+                valign: 'middle'
+        
+        RecycleView:
+            id: rv
+            viewclass: 'ProductoRow'
+            RecycleBoxLayout:
+                default_size: None, dp(40)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
+                spacing: '2dp'
+        
+        Widget:
+            size_hint_y: 0.1
+        
+        BoxLayout:
+            size_hint_y: None
+            height: '50dp'
+            spacing: '10dp'
+            pos_hint: {'center_x': 0.5}
+            
+            Button:
+                text: 'Generar Cotización'
+                size_hint_x: 0.5
+                background_color: 0.2, 0.6, 1, 1
+                on_press: root.generar_cotizacion()
+            
+            Button:
+                text: 'Agregar Producto'
+                size_hint_x: 0.5
+                background_color: 0.2, 0.8, 0.2, 1
+                on_press: root.show_add_product_popup()
+
+<CotizacionScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '20dp'
+        spacing: '10dp'
+        
+        canvas.before:
+            Color:
+                rgba: 0.918, 0.965, 1, 1  # Fondo azul claro #EAF6FF
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        Label:
+            text: 'Cotización de Productos'
+            color: 0.118, 0.227, 0.373, 1  # Azul oscuro #1E3A5F
+            size_hint_y: None
+            height: '50dp'
+            font_size: '24sp'
+            bold: True
+        
+        ScrollView:
+            do_scroll_y: True
+            do_scroll_x: False
+            size_hint_y: 0.7
+            
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: '10dp'
+                
+                ScrollView:
+                    do_scroll_x: True
+                    do_scroll_y: False
+                    size_hint_y: None
+                    height: tabla_container.height
+                    
+                    GridLayout:
+                        id: tabla_container
+                        cols: 1
+                        size_hint: None, None
+                        width: self.minimum_width
+                        height: self.minimum_height
+                        spacing: '2dp'
+                
+                Button:
+                    text: 'Agregar Ambiente'
+                    size_hint: None, None
+                    width: '200dp'
+                    height: '40dp'
+                    pos_hint: {'center_x': 0.5}
+                    on_press: root.agregar_ambiente()
+                    background_color: 0.2, 0.8, 0.2, 1
+        
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: '120dp'
+            padding: '10dp'
+            spacing: '5dp'
+            canvas.before:
+                Color:
+                    rgba: 0.95, 0.95, 0.95, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            
+            BoxLayout:
+                Label:
+                    text: 'Valor Plan Personalizado:'
+                    color: 0, 0, 0, 1
+                    size_hint_x: 0.7
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+                Label:
+                    id: valor_plan
+                    text: '$0'
+                    color: 0, 0, 0, 1
+                    size_hint_x: 0.3
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+            
+            BoxLayout:
+                Label:
+                    text: 'IVA 19%:'
+                    color: 0, 0, 0, 1
+                    size_hint_x: 0.7
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+                Label:
+                    id: valor_iva
+                    text: '$0'
+                    color: 0, 0, 0, 1
+                    size_hint_x: 0.3
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+            
+            BoxLayout:
+                Label:
+                    text: 'Total:'
+                    color: 0, 0, 0, 1
+                    bold: True
+                    size_hint_x: 0.7
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+                Label:
+                    id: valor_total
+                    text: '$0'
+                    color: 0, 0, 0, 1
+                    bold: True
+                    size_hint_x: 0.3
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+        
+        BoxLayout:
+            size_hint_y: None
+            height: '50dp'
+            spacing: '10dp'
+            
+            Button:
+                text: 'Generar PDF de Cotización'
+                size_hint_x: 0.7
+                background_color: 0.118, 0.227, 0.373, 1  # #1E3A5F
+                on_press: root.generar_pdf()
+            
+            Button:
+                text: 'Volver'
+                size_hint_x: 0.3
+                background_color: 0.8, 0.8, 0.8, 1
+                on_press: app.root.current = 'principal'
