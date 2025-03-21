@@ -539,6 +539,16 @@
             orientation: 'vertical'
             padding: '20dp'
             spacing: '10dp'
+
+            Button:
+                text: 'Regresar'
+                size_hint: None, None
+                size: '120dp', '40dp'
+                background_color: "#0b3d93"
+                color: 1, 1, 1, 1
+                pos_hint: {'right': 0.15}  # Cambiado de center_x a right
+                on_press: app.root.current = 'principal'
+
             
             Label:
                 text: 'Gestión de Usuarios'
@@ -559,11 +569,3 @@
                     size_hint_y: None
                     height: self.minimum_height
             
-            Button:
-                text: 'Regresar'
-                size_hint: None, None
-                size: '120dp', '40dp'
-                background_color: "#0b3d93"
-                color: 1, 1, 1, 1
-                pos_hint: {'right': 0.9}  # Cambiado de center_x a right
-                on_press: app.root.current = 'principal'

@@ -1,42 +1,42 @@
 [
     {
         "nombre": "Google Assistant Nest",
-        "unidades": 56,
+        "unidades": 148,
         "costo": 223076
     },
     {
         "nombre": "Foco LED RGB Controlado",
-        "unidades": 18,
+        "unidades": 100,
         "costo": 61876
     },
     {
         "nombre": "Control Remoto Universal",
-        "unidades": 40,
+        "unidades": 120,
         "costo": 91636
     },
     {
         "nombre": "Adaptador de Corriente",
-        "unidades": 19,
+        "unidades": 123,
         "costo": 59396
     },
     {
-        "nombre": "C\u00e1mara IP WIFI 2MP",
-        "unidades": 5,
+        "nombre": "Camara IP WIFI 2MP",
+        "unidades": 140,
         "costo": 90892
     },
     {
         "nombre": "Chromecast Serie 3",
-        "unidades": 50,
+        "unidades": 146,
         "costo": 223076
     },
     {
         "nombre": "Interruptor Sencillo",
-        "unidades": 16,
+        "unidades": 116,
         "costo": 123876
     },
     {
         "nombre": "Interruptor Doble",
-        "unidades": 22,
+        "unidades": 122,
         "costo": 148676
     },
     {
