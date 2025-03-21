@@ -1,1 +1,12 @@
-{"1023242964": {"username": "KRlox", "password": "Jefe?panda91."}, "1072649746": {"username": "Dsitoo", "password": "cr"}}
+{
+    "2": {
+        "username": "Dsitoo",
+        "password": "cr",
+        "role": "admin"
+    },
+    "1": {
+        "username": "Dsitooo",
+        "password": "c",
+        "role": "client"
+    }
+}

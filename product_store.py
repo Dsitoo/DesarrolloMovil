@@ -42,6 +42,9 @@ class ProductStore:
         self._save_products(self.products)
 
     def update_product_units(self, nombre, nuevas_unidades):
+        if nuevas_unidades < 0:  # Prevenir números negativos
+            nuevas_unidades = 0
+            
         with open(self.file_path, 'r') as file:
             productos = json.load(file)
         
@@ -52,3 +55,10 @@ class ProductStore:
         
         with open(self.file_path, 'w') as file:
             json.dump(productos, file, indent=4)
+
+    def check_stock(self, nombre, cantidad):
+        """Verifica si hay suficiente stock de un producto"""
+        for producto in self.products:
+            if producto['nombre'] == nombre:
+                return producto['unidades'] >= cantidad
+        return False

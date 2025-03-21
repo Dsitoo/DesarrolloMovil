@@ -17,7 +17,7 @@
             
         Label:
             text: 'Colva APP'
-            color: 0, 0, 0, 1
+            color: "#0b3d93"
             size_hint: 0.8, None
             height: '40dp'
             pos_hint: {'center_x': 0.5, 'center_y': 0.3}
@@ -101,7 +101,7 @@
             height: '40dp'
             pos_hint: {'center_x': 0.5}
             on_press: root.on_login_press()
-            background_color: 0.2, 0.6, 1, 1
+            background_color: "#0b3d93"
         
         Widget:
             size_hint_y: 0.1
@@ -205,15 +205,15 @@
             height: '40dp'
             pos_hint: {'center_x': 0.5}
             on_press: root.on_register_press()
-            background_color: 0.2, 0.6, 1, 1
+            background_color: "#0b3d93"
             
         Button:
-            text: 'Volver'
+            text: 'Regresar'
             size_hint: 0.5, None
             height: '40dp'
             pos_hint: {'center_x': 0.5}
             on_press: app.root.current = 'login'
-            background_color: 0.8, 0.8, 0.8, 1
+            background_color: "#0b3d93"
 
 <ProductoRow@BoxLayout>:
     nombre: ''
@@ -248,225 +248,322 @@
         halign: 'right'
         valign: 'middle'
 
+<NavBar>:
+    size_hint_y: None
+    height: '50dp'
+    padding: '5dp'
+    canvas.before:
+        Color:
+            rgba: 0.011, 0.061, 0.147, 1  # Fondo azul oscuro equivalente a #0b3d93
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'horizontal'
+
+        Label:
+            text: 'Colva APP'
+            color: 1, 1, 1, 1  # Texto blanco
+            bold: True
+            font_size: '20sp'
+            size_hint_x: None
+            width: dp(150)  # Ancho opcional para ajustarlo más si es necesario
+            halign: 'left'  # Alineación a la izquierda
+            valign: 'middle'  # Centrado verticalmente
+            text_size: self.size  # Hacer que la alineación funcione
+
+        Widget:
+            size_hint_x: 1  # Espaciador flexible para empujar el botón hacia la derecha
+
+        Button:
+            text: 'Cerrar Sesión'
+            size_hint_x: None
+            width: dp(120)
+            background_color: 0, 0, 0, 0  # Fondo transparente
+            background_normal: ''  # Sin imagen de fondo
+            color: 1, 1, 1, 1  # Texto blanco
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 1, 1  # Borde blanco
+                Line:
+                    width: 1.5  # Grosor del borde
+                    rectangle: self.x, self.y, self.width, self.height
+            on_press: app.root.current = 'login'
+
 <PrincipalScreen>:
     BoxLayout:
         orientation: 'vertical'
-        padding: '20dp'
-        spacing: '10dp'
         
-        canvas.before:
-            Color:
-                rgba: 1, 1, 1, 1
-            Rectangle:
-                pos: self.pos
-                size: self.size
-        
-        Label:
-            text: 'Productos Disponibles'
-            color: 0, 0, 0, 1
-            size_hint_y: None
-            height: '50dp'
-            font_size: '24sp'
-            bold: True
-        
-        BoxLayout:
-            size_hint_y: None
-            height: '40dp'
-            padding: '10dp'
-            
-            Label:
-                text: 'Nombre del Producto'
-                size_hint_x: 0.5
-                color: 0, 0, 0, 1
-                bold: True
-                text_size: self.size
-                halign: 'left'
-                valign: 'middle'
-            
-            Label:
-                text: 'Unidades'
-                size_hint_x: 0.25
-                color: 0, 0, 0, 1
-                bold: True
-                text_size: self.size
-                halign: 'center'
-                valign: 'middle'
-            
-            Label:
-                text: 'Costo'
-                size_hint_x: 0.25
-                color: 0, 0, 0, 1
-                bold: True
-                text_size: self.size
-                halign: 'right'
-                valign: 'middle'
-        
-        RecycleView:
-            id: rv
-            viewclass: 'ProductoRow'
-            RecycleBoxLayout:
-                default_size: None, dp(40)
-                default_size_hint: 1, None
-                size_hint_y: None
-                height: self.minimum_height
-                orientation: 'vertical'
-                spacing: '2dp'
-        
-        Widget:
-            size_hint_y: 0.1
-        
-        BoxLayout:
-            size_hint_y: None
-            height: '50dp'
-            spacing: '10dp'
-            pos_hint: {'center_x': 0.5}
-            
-            Button:
-                text: 'Generar Cotización'
-                size_hint_x: 0.5
-                background_color: 0.2, 0.6, 1, 1
-                on_press: root.generar_cotizacion()
-            
-            Button:
-                text: 'Agregar Producto'
-                size_hint_x: 0.5
-                background_color: 0.2, 0.8, 0.2, 1
-                on_press: root.show_add_product_popup()
-
-<CotizacionScreen>:
-    BoxLayout:
-        orientation: 'vertical'
-        padding: '20dp'
-        spacing: '10dp'
-        
-        canvas.before:
-            Color:
-                rgba: 0.918, 0.965, 1, 1  # Fondo azul claro #EAF6FF
-            Rectangle:
-                pos: self.pos
-                size: self.size
-        
-        Label:
-            text: 'Cotización de Productos'
-            color: 0.118, 0.227, 0.373, 1  # Azul oscuro #1E3A5F
-            size_hint_y: None
-            height: '50dp'
-            font_size: '24sp'
-            bold: True
-        
-        ScrollView:
-            do_scroll_y: True
-            do_scroll_x: False
-            size_hint_y: 0.7
-            
-            BoxLayout:
-                orientation: 'vertical'
-                size_hint_y: None
-                height: self.minimum_height
-                spacing: '10dp'
-                
-                ScrollView:
-                    do_scroll_x: True
-                    do_scroll_y: False
-                    size_hint_y: None
-                    height: tabla_container.height
-                    
-                    GridLayout:
-                        id: tabla_container
-                        cols: 1
-                        size_hint: None, None
-                        width: self.minimum_width
-                        height: self.minimum_height
-                        spacing: '2dp'
-                
-                Button:
-                    text: 'Agregar Ambiente'
-                    size_hint: None, None
-                    width: '200dp'
-                    height: '40dp'
-                    pos_hint: {'center_x': 0.5}
-                    on_press: root.agregar_ambiente()
-                    background_color: 0.2, 0.8, 0.2, 1
+        NavBar:
         
         BoxLayout:
             orientation: 'vertical'
-            size_hint_y: None
-            height: '120dp'
-            padding: '10dp'
-            spacing: '5dp'
+            padding: '20dp'
+            spacing: '10dp'
+            
             canvas.before:
                 Color:
-                    rgba: 0.95, 0.95, 0.95, 1
+                    rgba: 1, 1, 1, 1
                 Rectangle:
                     pos: self.pos
                     size: self.size
             
+            Label:
+                text: 'Productos Disponibles'
+                color: 0, 0, 0, 1
+                size_hint_y: None
+                height: '50dp'
+                font_size: '24sp'
+                bold: True
+            
             BoxLayout:
+                size_hint_y: None
+                height: '40dp'
+                padding: '10dp'
+                
                 Label:
-                    text: 'Valor Plan Personalizado:'
+                    text: 'Nombre del Producto'
+                    size_hint_x: 0.5
                     color: 0, 0, 0, 1
-                    size_hint_x: 0.7
+                    bold: True
                     text_size: self.size
-                    halign: 'right'
+                    halign: 'left'
                     valign: 'middle'
+                
                 Label:
-                    id: valor_plan
-                    text: '$0'
+                    text: 'Unidades'
+                    size_hint_x: 0.25
                     color: 0, 0, 0, 1
-                    size_hint_x: 0.3
+                    bold: True
+                    text_size: self.size
+                    halign: 'center'
+                    valign: 'middle'
+                
+                Label:
+                    text: 'Costo'
+                    size_hint_x: 0.25
+                    color: 0, 0, 0, 1
+                    bold: True
                     text_size: self.size
                     halign: 'right'
                     valign: 'middle'
             
-            BoxLayout:
-                Label:
-                    text: 'IVA 19%:'
-                    color: 0, 0, 0, 1
-                    size_hint_x: 0.7
-                    text_size: self.size
-                    halign: 'right'
-                    valign: 'middle'
-                Label:
-                    id: valor_iva
-                    text: '$0'
-                    color: 0, 0, 0, 1
-                    size_hint_x: 0.3
-                    text_size: self.size
-                    halign: 'right'
-                    valign: 'middle'
+            RecycleView:
+                id: rv
+                viewclass: 'ProductoRow'
+                RecycleBoxLayout:
+                    default_size: None, dp(40)
+                    default_size_hint: 1, None
+                    size_hint_y: None
+                    height: self.minimum_height
+                    orientation: 'vertical'
+                    spacing: '2dp'
+            
+            Widget:
+                size_hint_y: 0.1
             
             BoxLayout:
-                Label:
-                    text: 'Total:'
-                    color: 0, 0, 0, 1
-                    bold: True
-                    size_hint_x: 0.7
-                    text_size: self.size
-                    halign: 'right'
-                    valign: 'middle'
-                Label:
-                    id: valor_total
-                    text: '$0'
-                    color: 0, 0, 0, 1
-                    bold: True
-                    size_hint_x: 0.3
-                    text_size: self.size
-                    halign: 'right'
-                    valign: 'middle'
+                size_hint_y: None
+                height: '50dp'
+                spacing: '10dp'
+                padding: '10dp'
+                
+                Button:
+                    id: admin_btn
+                    text: 'Administrar Productos'
+                    size_hint_x: None
+                    width: '200dp'
+                    background_color: 0.2, 0.8, 0.2, 1
+                    on_press: root.show_add_product_popup()
+                    opacity: 1 if app.current_user_role == 'admin' else 0
+                    disabled: False if app.current_user_role == 'admin' else True
+                
+                Widget:
+                    size_hint_x: 0.1
+
+                Button:
+                    id: cotizacion_btn
+                    text: 'Generar Cotización'
+                    size_hint_x: None
+                    width: '200dp'
+                    background_color: "#0b3d93"
+                    on_press: root.generar_cotizacion()
+
+                Widget:
+                    size_hint_x: 0.1
+                
+                Button:
+                    id: users_btn
+                    text: 'Gestión de Usuarios'
+                    size_hint_x: None
+                    width: '200dp'
+                    background_color: 0.2, 0.8, 0.2, 1
+                    on_press: app.root.current = 'users'
+                    opacity: 1 if app.current_user_role == 'admin' else 0
+                    disabled: False if app.current_user_role == 'admin' else True
+
+<CotizacionScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        
+        NavBar:
         
         BoxLayout:
-            size_hint_y: None
-            height: '50dp'
+            orientation: 'vertical'
+            padding: '20dp'
             spacing: '10dp'
             
-            Button:
-                text: 'Generar PDF de Cotización'
-                size_hint_x: 0.7
-                background_color: 0.118, 0.227, 0.373, 1  # #1E3A5F
-                on_press: root.generar_pdf()
+            BoxLayout:
+                size_hint_y: None
+                height: '40dp'
+                spacing: '10dp'
+                
+                Button:
+                    text: 'Regresar'
+                    size_hint_x: None
+                    width: '120dp'
+                    background_color: "#0b3d93"
+                    color: 1, 1, 1, 1
+                    on_press: app.root.current = 'principal'
+            
+            Label:
+                text: 'Cotización de Productos'
+                color: 0.118, 0.227, 0.373, 1
+                size_hint_y: None
+                height: '50dp'
+                font_size: '24sp'
+                bold: True
+            
+            ScrollView:
+                do_scroll_x: True
+                do_scroll_y: True
+                
+                GridLayout:
+                    id: tabla_container
+                    cols: 1
+                    size_hint: (None, None)
+                    width: self.minimum_width
+                    height: self.minimum_height
+                    spacing: '2dp'
+                    padding: '5dp'
             
             Button:
-                text: 'Volver'
-                size_hint_x: 0.3
-                background_color: 0.8, 0.8, 0.8, 1
+                text: 'Agregar Ambiente'
+                size_hint: (None, None)
+                size: '200dp', '40dp'
+                pos_hint: {'center_x': 0.5}
+                on_press: root.agregar_ambiente()
+                background_color: 0.2, 0.8, 0.2, 1
+            
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: '160dp'
+                padding: '10dp'
+                spacing: '5dp'
+                canvas.before:
+                    Color:
+                        rgba: 0.95, 0.95, 0.95, 1
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+
+                BoxLayout:
+                    Label:
+                        text: 'Valor Plan Personalizado:'
+                        color: 0, 0, 0, 1
+                        size_hint_x: 0.7
+                        text_size: self.size
+                        halign: 'right'
+                        valign: 'middle'
+                    Label:
+                        id: valor_plan
+                        text: '$0'
+                        color: 0, 0, 0, 1
+                        size_hint_x: 0.3
+                        text_size: self.size
+                        halign: 'right'
+                        valign: 'middle'
+                
+                BoxLayout:
+                    Label:
+                        text: 'IVA 19%:'
+                        color: 0, 0, 0, 1
+                        size_hint_x: 0.7
+                        text_size: self.size
+                        halign: 'right'
+                        valign: 'middle'
+                    Label:
+                        id: valor_iva
+                        text: '$0'
+                        color: 0, 0, 0, 1
+                        size_hint_x: 0.3
+                        text_size: self.size
+                        halign: 'right'
+                        valign: 'middle'
+                
+                BoxLayout:
+                    Label:
+                        text: 'Total:'
+                        color: 0, 0, 0, 1
+                        size_hint_x: 0.7
+                        text_size: self.size
+                        halign: 'right'
+                        valign: 'middle'
+                        bold: True
+                    Label:
+                        id: valor_total
+                        text: '$0'
+                        color: 0, 0, 0, 1
+                        size_hint_x: 0.3
+                        text_size: self.size
+                        halign: 'right'
+                        valign: 'middle'
+                        bold: True
+                
+                Button:
+                    text: 'Generar PDF'
+                    size_hint_y: None
+                    height: '40dp'
+                    background_color: 0.2, 0.6, 1, 1
+                    on_press: root.generar_pdf()
+
+<UsersScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        
+        NavBar:
+        
+        BoxLayout:
+            orientation: 'vertical'
+            padding: '20dp'
+            spacing: '10dp'
+            
+            Label:
+                text: 'Gestión de Usuarios'
+                color: 0, 0, 0, 1
+                size_hint_y: None
+                height: '50dp'
+                font_size: '24sp'
+                bold: True
+            
+            ScrollView:
+                do_scroll_x: False
+                do_scroll_y: True
+                
+                GridLayout:
+                    id: users_container
+                    cols: 4
+                    spacing: '5dp'
+                    size_hint_y: None
+                    height: self.minimum_height
+            
+            Button:
+                text: 'Regresar'
+                size_hint: None, None
+                size: '120dp', '40dp'
+                background_color: "#0b3d93"
+                color: 1, 1, 1, 1
+                pos_hint: {'right': 0.9}  # Cambiado de center_x a right
                 on_press: app.root.current = 'principal'

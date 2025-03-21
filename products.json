@@ -1,17 +1,17 @@
 [
     {
         "nombre": "Google Assistant Nest",
-        "unidades": -2,
+        "unidades": 56,
         "costo": 223076
     },
     {
         "nombre": "Foco LED RGB Controlado",
-        "unidades": 11,
+        "unidades": 18,
         "costo": 61876
     },
     {
         "nombre": "Control Remoto Universal",
-        "unidades": 6,
+        "unidades": 40,
         "costo": 91636
     },
     {
@@ -26,7 +26,7 @@
     },
     {
         "nombre": "Chromecast Serie 3",
-        "unidades": -3,
+        "unidades": 50,
         "costo": 223076
     },
     {
@@ -41,12 +41,7 @@
     },
     {
         "nombre": "Otros (Personal y CH)",
-        "unidades": -10,
+        "unidades": 250,
         "costo": 67402
-    },
-    {
-        "nombre": "Bo",
-        "unidades": -1,
-        "costo": 50
     }
 ]
