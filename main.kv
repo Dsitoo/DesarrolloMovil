@@ -1,5 +1,6 @@
 <LoadingScreen>:
     logo: logo
+    app_name: app_name  # Añadir referencia al label del nombre
     FloatLayout:
         canvas.before:
             Color:
@@ -16,6 +17,7 @@
             pos_hint: {'center_x': 0.5, 'center_y': 0.6}
             
         Label:
+            id: app_name  # Añadir id para poder referenciarlo
             text: 'Colva APP'
             color: "#0b3d93"
             size_hint: 0.8, None
@@ -23,6 +25,7 @@
             pos_hint: {'center_x': 0.5, 'center_y': 0.3}
             font_size: '24sp'
             bold: True
+            opacity: 0  # Iniciar con opacidad 0
 
 <LoginScreen>:
     BoxLayout:
@@ -89,11 +92,24 @@
                 size_hint_x: None
                 width: self.height
             
-            TextInput:
-                id: password_input
-                hint_text: 'Contraseña'
-                password: True
-                multiline: False
+            RelativeLayout:
+                TextInput:
+                    id: password_input
+                    hint_text: 'Contraseña'
+                    password: True
+                    multiline: False
+                    padding: [10, 10, 45, 10]  # Añadir padding derecho para el botón
+                
+                MDIconButton:
+                    icon: 'eye-off'
+                    theme_text_color: "Custom"
+                    text_color: "#0b3d93"
+                    size_hint: None, None
+                    size: '40dp', '40dp'
+                    pos_hint: {'center_y': 0.5, 'right': 1}
+                    on_press: 
+                        self.icon = 'eye' if self.icon == 'eye-off' else 'eye-off'
+                        password_input.password = not password_input.password
         
         Button:
             text: 'Ingresar'
@@ -164,6 +180,8 @@
             height: '40dp'
             pos_hint: {'center_x': 0.5}
             multiline: False
+            input_filter: 'int'  # Solo números
+            max_length: 12  # Máximo 12 dígitos
             
         Label:
             text: 'Contraseña'
@@ -173,14 +191,28 @@
             pos_hint: {'center_x': 0.2}
             halign: 'left'
             
-        TextInput:
-            id: reg_password
-            hint_text: 'Ingrese su contraseña'
+        RelativeLayout:
             size_hint: 0.8, None
             height: '40dp'
             pos_hint: {'center_x': 0.5}
-            password: True
-            multiline: False
+            
+            TextInput:
+                id: reg_password
+                hint_text: 'Ingrese su contraseña'
+                password: True
+                multiline: False
+                padding: [10, 10, 45, 10]  # Añadir padding derecho para el botón
+            
+            MDIconButton:
+                icon: 'eye-off'
+                theme_text_color: "Custom"
+                text_color: "#0b3d93"
+                size_hint: None, None
+                size: '40dp', '40dp'
+                pos_hint: {'center_y': 0.5, 'right': 1}
+                on_press: 
+                    self.icon = 'eye' if self.icon == 'eye-off' else 'eye-off'
+                    reg_password.password = not reg_password.password
             
         Label:
             text: 'Confirmar Contraseña'
@@ -190,14 +222,28 @@
             pos_hint: {'center_x': 0.2}
             halign: 'left'
             
-        TextInput:
-            id: reg_confirm_password
-            hint_text: 'Confirme su contraseña'
+        RelativeLayout:
             size_hint: 0.8, None
             height: '40dp'
             pos_hint: {'center_x': 0.5}
-            password: True
-            multiline: False
+            
+            TextInput:
+                id: reg_confirm_password
+                hint_text: 'Confirme su contraseña'
+                password: True
+                multiline: False
+                padding: [10, 10, 45, 10]  # Añadir padding derecho para el botón
+            
+            MDIconButton:
+                icon: 'eye-off'
+                theme_text_color: "Custom"
+                text_color: "#0b3d93"
+                size_hint: None, None
+                size: '40dp', '40dp'
+                pos_hint: {'center_y': 0.5, 'right': 1}
+                on_press: 
+                    self.icon = 'eye' if self.icon == 'eye-off' else 'eye-off'
+                    reg_confirm_password.password = not reg_confirm_password.password
             
         Button:
             text: 'Registrarse'
@@ -568,4 +614,142 @@
                     spacing: '5dp'
                     size_hint_y: None
                     height: self.minimum_height
-            
+
+<ClientFormScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '20dp'
+        spacing: '10dp'
+
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        Label:
+            text: 'Datos del Cliente'
+            color: 0, 0, 0, 1
+            font_size: '24sp'
+            size_hint_y: None
+            height: '40dp'
+            bold: True
+
+        ScrollView:
+            GridLayout:
+                cols: 1
+                spacing: '10dp'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: '10dp'
+
+                Label:
+                    text: 'Tipo de Documento'
+                    color: 0, 0, 0, 1
+                    size_hint_y: None
+                    height: '30dp'
+                    halign: 'left'
+                    text_size: self.size
+
+                Spinner:
+                    id: tipo_doc
+                    text: 'Cédula de Ciudadanía'
+                    values: ['Cédula de Ciudadanía', 'NIT', 'Cédula de Extranjería', 'Pasaporte']
+                    size_hint_y: None
+                    height: '40dp'
+
+                Label:
+                    text: 'Número de Documento'
+                    color: 0, 0, 0, 1
+                    size_hint_y: None
+                    height: '30dp'
+                    halign: 'left'
+                    text_size: self.size
+
+                TextInput:
+                    id: num_documento
+                    multiline: False
+                    size_hint_y: None
+                    height: '40dp'
+                    input_filter: 'int'  # Solo números
+                    max_length: 12  # Máximo 12 dígitos
+
+                Label:
+                    text: 'Nombres'
+                    color: 0, 0, 0, 1
+                    size_hint_y: None
+                    height: '30dp'
+                    halign: 'left'
+                    text_size: self.size
+
+                TextInput:
+                    id: nombres
+                    multiline: False
+                    size_hint_y: None
+                    height: '40dp'
+                    input_filter: lambda text, from_undo: ''.join(c for c in text if c.isalpha() or c.isspace())  # Solo letras y espacios
+
+                Label:
+                    text: 'Apellidos'
+                    color: 0, 0, 0, 1
+                    size_hint_y: None
+                    height: '30dp'
+                    halign: 'left'
+                    text_size: self.size
+
+                TextInput:
+                    id: apellidos
+                    multiline: False
+                    size_hint_y: None
+                    height: '40dp'
+                    input_filter: lambda text, from_undo: ''.join(c for c in text if c.isalpha() or c.isspace())  # Solo letras y espacios
+
+                Label:
+                    text: 'Teléfono'
+                    color: 0, 0, 0, 1
+                    size_hint_y: None
+                    height: '30dp'
+                    halign: 'left'
+                    text_size: self.size
+
+                TextInput:
+                    id: telefono
+                    multiline: False
+                    size_hint_y: None
+                    height: '40dp'
+                    input_filter: 'int'  # Solo números
+                    max_length: 10  # Exactamente 10 dígitos
+
+                Label:
+                    text: 'Email'
+                    color: 0, 0, 0, 1
+                    size_hint_y: None
+                    height: '30dp'
+                    halign: 'left'
+                    text_size: self.size
+
+                TextInput:
+                    id: email
+                    multiline: False
+                    size_hint_y: None
+                    height: '40dp'
+
+        BoxLayout:
+            size_hint_y: None
+            height: '50dp'
+            spacing: '20dp'
+            padding: '10dp'
+
+            Button:
+                text: 'Cancelar'
+                size_hint_x: 0.5
+                background_color: 0.8, 0.2, 0.2, 1
+                on_press: root.manager.current = 'cotizacion'
+
+            Button:
+                text: 'Generar PDF'
+                size_hint_x: 0.5
+                background_color: 0.2, 0.6, 1, 1
+                on_press: root.submit()
+

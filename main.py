@@ -11,9 +11,8 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.widget import Widget  # Añadir esta importación
 from functools import partial
-from user_store import UserStore
-from product_store import ProductStore
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -32,23 +31,38 @@ from kivymd.uix.button import MDIconButton
 from kivy.uix.spinner import Spinner  # Añadir esta importación
 import sqlite3
 import traceback
+from database import Database  # Añadir esta importación
 
 class LoadingScreen(Screen):
     logo = ObjectProperty(None)
+    app_name = ObjectProperty(None)  # Añadir referencia al label
     
     def on_enter(self):
-        anim = Animation(opacity=1, duration=2)
-        anim.bind(on_complete=self.start_exit_animation)
-        anim.start(self.logo)
+        # Animar tanto el logo como el nombre
+        anim_logo = Animation(opacity=1, duration=2)
+        anim_name = Animation(opacity=1, duration=2)
+        
+        anim_logo.bind(on_complete=self.start_exit_animation)
+        anim_name.bind(on_complete=lambda *_: None)  # Corregido
+        
+        anim_logo.start(self.logo)
+        anim_name.start(self.app_name)
     
     def start_exit_animation(self, *args):
         Clock.schedule_once(self.begin_exit, 1)
     
     def begin_exit(self, dt):
-        anim = Animation(opacity=0, duration=2)
-        anim.bind(on_complete=self.switch_screen)
-        anim.start(self.logo)
-    
+        # Animar la salida de ambos elementos
+        anim_logo = Animation(opacity=0, duration=2)
+        anim_name = Animation(opacity=0, duration=2)
+        
+        # Corregir la sintaxis del binding
+        anim_logo.bind(on_complete=self.switch_screen)
+        anim_name.bind(on_complete=lambda *args: None)
+        
+        anim_logo.start(self.logo)
+        anim_name.start(self.app_name)
+
     def switch_screen(self, *args):
         self.manager.current = 'login'
 
@@ -102,12 +116,20 @@ class RegisterScreen(Screen):
             self.show_error("El número de identificación debe contener solo números")
             return False
 
+        if len(id_number) < 8 or len(id_number) > 12:
+            self.show_error("El número de identificación debe tener entre 8 y 12 dígitos")
+            return False
+
         if len(password) < 6:
             self.show_error("La contraseña debe tener al menos 6 caracteres")
             return False
 
         if password != confirm_password:
             self.show_error("Las contraseñas no coinciden")
+            return False
+
+        if not username.replace(" ", "").isalpha():
+            self.show_error("El nombre solo debe contener letras")
             return False
 
         return True
@@ -120,10 +142,13 @@ class RegisterScreen(Screen):
 
         if self.validate_registration(username, id_number, password, confirm_password):
             app = App.get_running_app()
-            # Por defecto, los nuevos usuarios son clientes
-            app.user_store.add_user(id_number, username, password, 'client')
-            self.show_success("Registro exitoso")
-            self.manager.current = 'login'
+            try:
+                # Intentar añadir el usuario
+                app.db.add_user(id_number, username, password, 'cliente')
+                self.show_success("Registro exitoso")
+                self.manager.current = 'login'
+            except Exception as e:
+                self.show_error(str(e))
 
     def show_error(self, message):
         popup = Popup(title='Error',
@@ -138,15 +163,13 @@ class RegisterScreen(Screen):
         popup.open()
 
 class ProductosRV(RecycleView):
-    data = ListProperty([])
-    
     def __init__(self, **kwargs):
         super(ProductosRV, self).__init__(**kwargs)
         self.load_products()
     
     def load_products(self):
         app = App.get_running_app()
-        productos = app.product_store.get_all_products()  # Usando product_store en lugar de database
+        productos = app.db.get_all_products()  # Cambiado product_store por db
         self.data = [{
             'nombre': p['nombre'],
             'unidades': str(p['unidades']),
@@ -200,7 +223,7 @@ class AddProductPopup(Popup):
             return
             
         app = App.get_running_app()
-        app.product_store.add_product(nombre, unidades, costo)
+        app.db.add_product(nombre, unidades, costo)  # Cambiado product_store por db
         self.update_callback()
         self.dismiss()
 
@@ -300,7 +323,7 @@ class UpdateProductPopup(Popup):
                 return
                 
             app = App.get_running_app()
-            productos = app.product_store.get_all_products()
+            productos = app.db.get_all_products()  # Cambiado product_store por db
             
             for producto in productos:
                 if producto['nombre'] == self.producto['nombre']:
@@ -309,7 +332,7 @@ class UpdateProductPopup(Popup):
                         producto['costo'] = int(nuevo_costo)
                     break
             
-            app.product_store._save_products(productos)
+            app.db.update_product_units(self.producto['nombre'], producto['unidades'])  # Actualizado
             self.update_callback()
             self.dismiss()
             
@@ -360,7 +383,7 @@ class PrincipalScreen(Screen):
 
     def show_product_selection(self):
         app = App.get_running_app()
-        productos = app.product_store.get_all_products()
+        productos = app.db.get_all_products()  # Cambiado product_store por db
         
         content = BoxLayout(orientation='vertical', spacing=10, padding=10)
         scroll_layout = GridLayout(cols=1, spacing=5, size_hint_y=None)
@@ -394,6 +417,93 @@ class PrincipalScreen(Screen):
         self.productos_rv.load_products()
         self.ids.rv.data = self.productos_rv.data
 
+class ClientDataPopup(Popup):
+    def __init__(self, generar_pdf_callback, **kwargs):
+        super().__init__(**kwargs)
+        self.generar_pdf_callback = generar_pdf_callback
+        self.title = 'Datos del Cliente'
+        self.size_hint = (0.9, 0.8)
+        self.content = self.create_content()
+
+    def create_content(self):
+        layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        
+        # Tipo de documento (Spinner)
+        self.tipo_doc = Spinner(
+            text='Cédula de Ciudadanía',
+            values=('Cédula de Ciudadanía', 'NIT', 'Cédula de Extranjería', 'Pasaporte'),
+            size_hint_y=None,
+            height='40dp'
+        )
+        
+        # Campos de entrada
+        self.num_documento = TextInput(hint_text='Número de Documento', multiline=False)
+        self.nombres = TextInput(hint_text='Nombres', multiline=False)
+        self.apellidos = TextInput(hint_text='Apellidos', multiline=False)
+        self.telefono = TextInput(hint_text='Número Telefónico', multiline=False)
+        self.email = TextInput(hint_text='Correo Electrónico', multiline=False)
+        
+        # Botón de generar
+        generar_btn = Button(
+            text='Generar PDF',
+            size_hint_y=None,
+            height='50dp',
+            background_color=(0.2, 0.6, 1, 1)
+        )
+        generar_btn.bind(on_press=self.submit)
+        
+        # Añadir widgets al layout
+        labels_inputs = [
+            ('Tipo de Documento:', self.tipo_doc),
+            ('Número de Documento:', self.num_documento),
+            ('Nombres:', self.nombres),
+            ('Apellidos:', self.apellidos),
+            ('Teléfono:', self.telefono),
+            ('Correo:', self.email)
+        ]
+        
+        for label_text, input_widget in labels_inputs:
+            layout.add_widget(Label(
+                text=label_text,
+                size_hint_y=None,
+                height='30dp',
+                halign='left'
+            ))
+            layout.add_widget(input_widget)
+        
+        layout.add_widget(Widget(size_hint_y=None, height='20dp'))
+        layout.add_widget(generar_btn)
+        
+        return layout
+
+    def submit(self, instance):
+        # Validar campos
+        if not all([self.num_documento.text, self.nombres.text, self.apellidos.text,
+                   self.telefono.text, self.email.text]):
+            self.show_error("Por favor complete todos los campos")
+            return
+            
+        cliente_data = {
+            'tipo_documento': self.tipo_doc.text,
+            'numero_documento': self.num_documento.text,
+            'nombres': self.nombres.text,
+            'apellidos': self.apellidos.text,
+            'telefono': self.telefono.text,
+            'email': self.email.text
+        }
+        
+        self.dismiss()
+        self.generar_pdf_callback(cliente_data)
+
+    def show_error(self, message):
+        popup = Popup(
+            title='Error',
+            content=Label(text=message),
+            size_hint=(None, None),
+            size=(300, 200)
+        )
+        popup.open()
+
 class CotizacionScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -406,7 +516,7 @@ class CotizacionScreen(Screen):
 
     def on_enter(self):
         app = App.get_running_app()
-        self.productos = app.product_store.get_all_products()
+        self.productos = app.db.get_all_products()  # Cambiado product_store por db
         self.crear_tabla()
         
     def crear_tabla(self):
@@ -470,98 +580,141 @@ class CotizacionScreen(Screen):
             valign='middle'
         ))
         
+        # Crear inputs para cada producto manteniendo el orden
         for producto in self.productos:
             text_input = TextInput(
                 multiline=False,
                 input_filter='int',
-                text='0',
+                text='',  # Cambiado de '0' a ''
+                hint_text='0',  # Agregado hint_text para mostrar 0 cuando está vacío
                 size_hint_x=None,
                 width=column_width,
                 height=40,
                 halign='center',
-                padding=(10, 10)  # Añadir padding al texto
+                padding=(10, 10)
             )
-            text_input.bind(text=self.actualizar_totales)
+            # Almacenar referencia al producto
+            setattr(text_input, 'producto_ref', producto)
+            text_input.bind(
+                text=self.on_text_input_change,
+                focus=self.on_focus
+            )
             fila.add_widget(text_input)
         
         self.ids.tabla_container.add_widget(fila)
 
-    def actualizar_totales(self, instance=None, value=None):
-        total = 0
-        self.total_productos = {p['nombre']: 0 for p in self.productos}
-        app = App.get_running_app()
-        
-        # Obtener todas las filas excepto el encabezado
+    def on_text_input_change(self, instance, value):
+        """Maneja los cambios en el TextInput"""
+        if not value:  # Si está vacío
+            self.actualizar_totales()
+            return
+
+        try:
+            cantidad = int(value)
+            producto = instance.producto_ref
+            total_otros = self.calcular_total_otros(instance, producto)
+            disponibles = producto['unidades'] - total_otros
+
+            if cantidad > disponibles:
+                mensaje = (
+                    f"No hay suficientes unidades de {producto['nombre']}.\n"
+                    f"Unidades totales: {producto['unidades']}\n"
+                    f"En uso en otros ambientes: {total_otros}\n"
+                    f"Disponibles: {disponibles}"
+                )
+                # Revertir a la cantidad disponible
+                instance.text = str(disponibles)
+                instance.readonly = True  # Bloquear entrada
+                Clock.schedule_once(lambda dt: self.show_error(mensaje))
+            
+            self.actualizar_totales()
+        except ValueError:
+            instance.text = ''
+            self.actualizar_totales()
+
+    def on_focus(self, instance, value):
+        """Resetea readonly cuando el campo pierde el foco"""
+        if not value:  # Cuando pierde el foco
+            instance.readonly = False
+
+    def calcular_total_otros(self, current_input, producto):
+        """Calcula el total de unidades usadas en otros campos"""
         filas = [widget for widget in self.ids.tabla_container.children 
                 if isinstance(widget, GridLayout)][:-1]
         
-        # Primero calcular el total actual por producto en todos los ambientes
-        totales_por_producto = {p['nombre']: 0 for p in self.productos}
-        for fila in filas:
-            inputs = [widget for widget in fila.children 
-                     if isinstance(widget, TextInput)]
-            inputs.reverse()
-            
-            for input_widget, producto in zip(inputs, self.productos):
-                try:
-                    # Limpiar ceros a la izquierda
-                    text_value = input_widget.text.lstrip('0')
-                    cantidad = int(text_value) if text_value else 0
-                    if text_value != input_widget.text:
-                        input_widget.text = str(cantidad) if cantidad > 0 else '0'
-                    
-                    if cantidad < 0:
-                        cantidad = 0
-                        input_widget.text = '0'
-                    totales_por_producto[producto['nombre']] += cantidad
-                except ValueError:
-                    continue
+        return sum(
+            int(other_input.text or '0')
+            for other_fila in filas
+            for other_input in [w for w in other_fila.children if isinstance(w, TextInput)]
+            if hasattr(other_input, 'producto_ref') 
+            and other_input.producto_ref['nombre'] == producto['nombre']
+            and other_input != current_input
+        )
 
-        # Ahora procesar cada input verificando los totales
-        for fila in filas:
-            inputs = [widget for widget in fila.children 
-                     if isinstance(widget, TextInput)]
-            inputs.reverse()
+    def actualizar_totales(self, instance=None, value=None):
+        if not hasattr(self, '_actualizando'):
+            self._actualizando = False
             
-            for input_widget, producto in zip(inputs, self.productos):
-                try:
-                    cantidad_actual = int(input_widget.text or '0')
-                    if cantidad_actual < 0:
-                        input_widget.text = '0'
-                        cantidad_actual = 0
-                    
-                    # Calcular el total sin contar este input
-                    total_otros = totales_por_producto[producto['nombre']] - cantidad_actual
-                    maximo_disponible = producto['unidades'] - total_otros
-                    
-                    # Verificar y ajustar si es necesario
-                    if cantidad_actual > maximo_disponible:
-                        input_widget.text = str(maximo_disponible)  # Establecer el máximo disponible
-                        cantidad_actual = maximo_disponible
-                        self.show_error(f"Se ha ajustado automáticamente la cantidad de {producto['nombre']} al máximo disponible: {maximo_disponible}")
-                    
-                    costo = int(producto['costo'])
-                    subtotal = cantidad_actual * costo
-                    self.total_productos[producto['nombre']] += cantidad_actual
-                    total += subtotal
-                except ValueError:
-                    continue
-        
-        # Actualizar labels
-        subtotal = total
-        iva = subtotal * 0.19
-        total_final = subtotal + iva
-        
-        self.ids.valor_plan.text = f"${subtotal:,.0f}"
-        self.ids.valor_iva.text = f"${iva:,.0f}"
-        self.ids.valor_total.text = f"${total_final:,.0f}"
+        if self._actualizando:
+            return
+            
+        self._actualizando = True
+        try:
+            total = 0
+            self.total_productos = {p['nombre']: 0 for p in self.productos}
+            
+            filas = [widget for widget in self.ids.tabla_container.children 
+                    if isinstance(widget, GridLayout)][:-1]
+            
+            for fila in filas:
+                inputs = [widget for widget in fila.children 
+                         if isinstance(widget, TextInput)]
+                inputs.reverse()
+                
+                for input_widget in inputs:
+                    if not hasattr(input_widget, 'producto_ref'):
+                        continue
+                        
+                    try:
+                        producto = input_widget.producto_ref
+                        valor_actual = input_widget.text.strip()
+                        cantidad = int(valor_actual) if valor_actual else 0
+                        
+                        if cantidad < 0:
+                            input_widget.text = ''
+                            cantidad = 0
+                            continue
+                        
+                        self.total_productos[producto['nombre']] += cantidad
+                        subtotal = cantidad * int(producto['costo'])
+                        total += subtotal
+                        
+                    except ValueError:
+                        input_widget.text = ''
+                        continue
+            
+            subtotal = total
+            iva = subtotal * 0.19
+            total_final = subtotal + iva
+            
+            self.ids.valor_plan.text = f"${subtotal:,.0f}"
+            self.ids.valor_iva.text = f"${iva:,.0f}"
+            self.ids.valor_total.text = f"${total_final:,.0f}"
+            
+        finally:
+            self._actualizando = False
 
     def show_error(self, message):
         popup = Popup(
-            title='Error',
-            content=Label(text=message),
+            title='Control de Inventario',
+            content=Label(
+                text=message,
+                text_size=(300, None),  # Ancho fijo, altura automática
+                halign='center',
+                valign='middle'
+            ),
             size_hint=(None, None),
-            size=(400, 200)
+            size=(350, 250)  # Tamaño aumentado para mostrar más información
         )
         popup.open()
 
@@ -578,6 +731,10 @@ class CotizacionScreen(Screen):
             return join(expanduser('~'), 'Downloads')
 
     def generar_pdf(self):
+        # Cambiar a la pantalla del formulario
+        self.manager.current = 'client_form'
+    
+    def generar_pdf_con_datos(self, cliente_data):
         # Obtener directorio de descargas
         downloads_dir = self.get_downloads_dir()
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -620,6 +777,33 @@ class CotizacionScreen(Screen):
         # Título y fecha
         elements.append(Paragraph("Cotización de Productos", title_style))
         elements.append(Paragraph(f"Fecha: {datetime.now().strftime('%d/%m/%Y')}", ambiente_style))
+        elements.append(Spacer(1, 20))
+
+        # Datos del cliente
+        elements.append(Paragraph("Información del Cliente", ambiente_style))
+        cliente_info = [
+            [Paragraph(f"Tipo de Documento: {cliente_data['tipo_documento']}", styles['Normal']), 
+             Paragraph(f"Número: {cliente_data['numero_documento']}", styles['Normal'])],
+            [Paragraph(f"Nombres: {cliente_data['nombres']}", styles['Normal']), 
+             Paragraph(f"Apellidos: {cliente_data['apellidos']}", styles['Normal'])],
+            [Paragraph(f"Teléfono: {cliente_data['telefono']}", styles['Normal']), 
+             Paragraph(f"Email: {cliente_data['email']}", styles['Normal'])]
+        ]
+        
+        # Ajustar el ancho de la tabla y sus estilos
+        cliente_table = Table(cliente_info, colWidths=[300, 200])  # Aumentar ancho de columnas
+        cliente_table.setStyle(TableStyle([
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1E3A5F')),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 12),  # Añadir padding superior
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),  # Añadir padding izquierdo
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10), # Añadir padding derecho
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),    # Alinear texto a la izquierda
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E5E5')),  # Agregar bordes suaves
+        ]))
+        elements.append(cliente_table)
         elements.append(Spacer(1, 20))
 
         # Obtener datos por ambiente y ordenarlos de forma ascendente
@@ -700,7 +884,11 @@ class CotizacionScreen(Screen):
             cantidad_usada = self.total_productos[producto['nombre']]
             if cantidad_usada > 0:
                 nuevas_unidades = int(producto['unidades']) - cantidad_usada
-                app.product_store.update_product_units(producto['nombre'], nuevas_unidades)
+                try:
+                    app.db.update_product_units(producto['nombre'], nuevas_unidades)
+                except Exception as e:
+                    print(f"Error actualizando {producto['nombre']}: {str(e)}")
+                    continue
         
         # Actualizar la vista de productos
         self.manager.get_screen('principal').update_products()
@@ -736,28 +924,28 @@ class UsersScreen(Screen):
     
     def load_users(self):
         app = App.get_running_app()
-        users = app.user_store.get_all_users()
+        users = app.db.get_all_users()
         container = self.ids.users_container
         container.clear_widgets()
         
         for user_id, user_data in users:
-            # ID
+            # ID - Convertir a string
             container.add_widget(Label(
-                text=user_id,
+                text=str(user_id),  # Convertir a string
                 color=(0,0,0,1),
                 size_hint_y=None,
                 height='40dp'
             ))
             # Username
             container.add_widget(Label(
-                text=user_data['username'],
+                text=str(user_data['username']),  # Asegurar que sea string
                 color=(0,0,0,1),
                 size_hint_y=None,
                 height='40dp'
             ))
             # Role
             container.add_widget(Label(
-                text=user_data['role'],
+                text=str(user_data['role']),  # Asegurar que sea string
                 color=(0,0,0,1),
                 size_hint_y=None,
                 height='40dp'
@@ -793,7 +981,7 @@ class UsersScreen(Screen):
 
     def show_edit_popup(self, user_id):
         app = App.get_running_app()
-        user_data = app.user_store.get_user_data(user_id)
+        user_data = app.db.get_user_data(user_id)  # Cambiado user_store por db
         if not user_data:
             return
 
@@ -816,7 +1004,7 @@ class UsersScreen(Screen):
             height='40dp'
         )
         
-        # Botón de actualizar
+        # Botón de actualizar (corregido el size_hint_y duplicado)
         update_btn = Button(
             text='Actualizar',
             size_hint_y=None,
@@ -837,7 +1025,7 @@ class UsersScreen(Screen):
         )
 
         def update(instance):
-            app.user_store.update_user(
+            app.db.update_user(  # Cambiado user_store por db
                 user_id,
                 username=username_input.text,
                 role=role_spinner.text
@@ -850,7 +1038,7 @@ class UsersScreen(Screen):
 
     def delete_user(self, user_id):
         app = App.get_running_app()
-        if app.user_store.delete_user(user_id):
+        if app.db.delete_user(user_id):  # Cambiado user_store por db
             self.load_users()
 
 class UsuarioRow(BoxLayout):
@@ -918,7 +1106,7 @@ class NavDrawer(BoxLayout):
             color=(1, 1, 1, 1),
             border=(2, 2, 2, 2)
         )
-        principal_btn.bind(on_press=lambda x: self.navigate_to('principal'))
+        principal_btn.bind(on_press(lambda x: self.navigate_to('principal')))  # Corregido: eliminado paréntesis extra
         buttons.append(principal_btn)
 
         # Botón Cotización
@@ -1009,19 +1197,113 @@ class NavBar(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+class ClientFormScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.productos = []
+        self.total_productos = {}
+        
+    def on_enter(self):
+        # Obtener los datos de la pantalla de cotización
+        cotizacion_screen = self.manager.get_screen('cotizacion')
+        self.productos = cotizacion_screen.productos
+        self.total_productos = cotizacion_screen.total_productos
+        self.subtotal = float(cotizacion_screen.ids.valor_plan.text.replace('$', '').replace(',', ''))
+        self.iva = float(cotizacion_screen.ids.valor_iva.text.replace('$', '').replace(',', ''))
+        self.total = float(cotizacion_screen.ids.valor_total.text.replace('$', '').replace(',', ''))
+
+    def validate_fields(self):
+        # Validar número de documento
+        num_documento = self.ids.num_documento.text.strip()
+        if not num_documento.isdigit():
+            self.show_error("El número de documento debe contener solo números")
+            return False
+
+        if len(num_documento) < 8 or len(num_documento) > 12:
+            self.show_error("El número de documento debe tener entre 8 y 12 dígitos")
+            self.ids.num_documento.text = num_documento[:12]  # Limitar a 12 dígitos
+            return False
+
+        # Validar nombres y apellidos (solo letras y espacios)
+        if not all(c.isalpha() or c.isspace() for c in self.ids.nombres.text):
+            self.show_error("Los nombres solo deben contener letras")
+            return False
+
+        if not all(c.isalpha() or c.isspace() for c in self.ids.apellidos.text):
+            self.show_error("Los apellidos solo deben contener letras")
+            return False
+
+        # Validar teléfono
+        if not self.ids.telefono.text.isdigit():
+            self.show_error("El teléfono debe contener solo números")
+            return False
+
+        if len(self.ids.telefono.text) != 10:
+            self.show_error("El teléfono debe tener 10 dígitos")
+            return False
+
+        # Validar email
+        if '@' not in self.ids.email.text:
+            self.show_error("El email debe contener @")
+            return False
+
+        if not self.validate_email_format(self.ids.email.text):
+            self.show_error("Formato de email inválido")
+            return False
+
+        return True
+
+    def validate_email_format(self, email):
+        """Validación básica de formato de email"""
+        import re
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return re.match(pattern, email) is not None
+
+    def submit(self):
+        if not self.validate_fields():
+            return
+
+        if not all([self.ids.num_documento.text, self.ids.nombres.text, 
+                    self.ids.apellidos.text, self.ids.telefono.text, 
+                    self.ids.email.text]):
+            self.show_error("Por favor complete todos los campos")
+            return
+            
+        cliente_data = {
+            'tipo_documento': self.ids.tipo_doc.text,
+            'numero_documento': self.ids.num_documento.text,
+            'nombres': self.ids.nombres.text,
+            'apellidos': self.ids.apellidos.text,
+            'telefono': self.ids.telefono.text,
+            'email': self.ids.email.text
+        }
+        
+        cotizacion_screen = self.manager.get_screen('cotizacion')
+        cotizacion_screen.generar_pdf_con_datos(cliente_data)
+        self.manager.current = 'cotizacion'
+
+    def show_error(self, message):
+        popup = Popup(
+            title='Error',
+            content=Label(text=message),
+            size_hint=(None, None),
+            size=(300, 200)
+        )
+        popup.open()
+
 class MainApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.current_user_id = None
         self.current_user_role = None
-        self.user_store = UserStore()
-        self.product_store = ProductStore()
+        self.db = Database()  # Solo usar db, eliminar las referencias a user_store y product_store
+        self.db.initialize_database()
 
     def validate_user(self, id_number, password):
-        return self.user_store.validate_user(id_number, password)
+        return self.db.validate_user(id_number, password)
 
     def get_user_role(self, id_number):
-        return self.user_store.get_user_role(id_number)
+        return self.db.get_user_role(id_number)
 
     def build(self):
         sm = ScreenManager(transition=FadeTransition())
@@ -1031,6 +1313,7 @@ class MainApp(MDApp):
         sm.add_widget(PrincipalScreen(name='principal'))
         sm.add_widget(CotizacionScreen(name='cotizacion'))
         sm.add_widget(UsersScreen(name='users'))
+        sm.add_widget(ClientFormScreen(name='client_form'))  # Agregar nueva pantalla
         
         self.theme_cls.theme_style = "Light"
         self.theme_cls.primary_palette = "Blue"
@@ -1038,5 +1321,5 @@ class MainApp(MDApp):
         return sm
 
 if __name__ == '__main__':
-    MainApp().run()
+    MainApp().run()  # Fixed incomplete line
 
