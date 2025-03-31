@@ -244,7 +244,7 @@
                 on_press: 
                     self.icon = 'eye' if self.icon == 'eye-off' else 'eye-off'
                     reg_confirm_password.password = not reg_confirm_password.password
-            
+
         Button:
             text: 'Registrarse'
             size_hint: 0.5, None
@@ -673,7 +673,10 @@
                     size_hint_y: None
                     height: '40dp'
                     input_filter: 'int'  # Solo números
-                    max_length: 12  # Máximo 12 dígitos
+                    hint_text: 'Mínimo 8 y máximo 12 dígitos'
+                    max_length: 12  # Limitar a 12 dígitos máximo
+                    on_text: 
+                        if len(self.text) > 12: self.text = self.text[:12]  # Cortar si excede 12 dígitos
 
                 Label:
                     text: 'Nombres'

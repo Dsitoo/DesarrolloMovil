@@ -11,39 +11,66 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.widget import Widget  # Añadir esta importación
+from kivy.uix.widget import Widget
 from functools import partial
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.platypus.flowables import HRFlowable  # Añadir esta importación
+from reportlab.platypus.flowables import HRFlowable
 from datetime import datetime
 import os
 from kivy.utils import platform
 from os.path import expanduser, join
 from kivy.uix.modalview import ModalView
-from kivy.core.window import Window  # Add this import
-from kivy.graphics import Color, Rectangle, Line  # Add this import
+from kivy.core.window import Window
+from kivy.graphics import Color, Rectangle, Line
 from kivymd.app import MDApp
 from kivymd.uix.button import MDIconButton
-from kivy.uix.spinner import Spinner  # Añadir esta importación
+from kivy.uix.spinner import Spinner
 import sqlite3
 import traceback
-from database import Database  # Añadir esta importación
+from database import Database
 
-class LoadingScreen(Screen):
+class BaseScreen(Screen):
+    def _show_popup(self, title, message, color=(1, 0, 0, 1)):
+        content = BoxLayout(orientation='vertical', padding=10)
+        label = Label(
+            text=message,
+            text_size=(280, None),
+            size_hint_y=None,
+            halign='center',
+            valign='middle'
+        )
+        label.bind(texture_size=lambda *x: setattr(label, 'height', label.texture_size[1]))
+        content.add_widget(label)
+        
+        popup = Popup(
+            title=title,
+            content=content,
+            size_hint=(None, None),
+            size=(300, label.height + 100),
+            auto_dismiss=True
+        )
+        popup.open()
+
+    def show_error(self, message):
+        self._show_popup('Error', message, color=(1, 0, 0, 1))
+
+    def show_success(self, message):
+        self._show_popup('Éxito', message, color=(0, 1, 0, 1))
+
+class LoadingScreen(BaseScreen):
     logo = ObjectProperty(None)
-    app_name = ObjectProperty(None)  # Añadir referencia al label
+    app_name = ObjectProperty(None)
     
     def on_enter(self):
-        # Animar tanto el logo como el nombre
         anim_logo = Animation(opacity=1, duration=2)
         anim_name = Animation(opacity=1, duration=2)
         
         anim_logo.bind(on_complete=self.start_exit_animation)
-        anim_name.bind(on_complete=lambda *_: None)  # Corregido
+        anim_name.bind(on_complete=lambda *_: None)
         
         anim_logo.start(self.logo)
         anim_name.start(self.app_name)
@@ -52,11 +79,9 @@ class LoadingScreen(Screen):
         Clock.schedule_once(self.begin_exit, 1)
     
     def begin_exit(self, dt):
-        # Animar la salida de ambos elementos
         anim_logo = Animation(opacity=0, duration=2)
         anim_name = Animation(opacity=0, duration=2)
         
-        # Corregir la sintaxis del binding
         anim_logo.bind(on_complete=self.switch_screen)
         anim_name.bind(on_complete=lambda *args: None)
         
@@ -66,14 +91,14 @@ class LoadingScreen(Screen):
     def switch_screen(self, *args):
         self.manager.current = 'login'
 
-class LoginScreen(Screen):
+class LoginScreen(BaseScreen):
     def validate_login(self, id_number, password):
         if not id_number or not password:
             self.show_error("Por favor complete todos los campos")
             return False
         
         app = App.get_running_app()
-        if app.validate_user(id_number, password):  # Usando el método de MainApp
+        if app.validate_user(id_number, password):
             return True
         
         self.show_error("Identificación o contraseña incorrecta")
@@ -85,28 +110,16 @@ class LoginScreen(Screen):
         
         if self.validate_login(id_number, password):
             app = App.get_running_app()
-            app.current_user_id = id_number  # Guardar ID del usuario actual
-            app.current_user_role = app.get_user_role(id_number)  # Usando el método de MainApp
-            print(f"Usuario logueado con rol: {app.current_user_role}")  # Debug line
+            app.current_user_id = id_number
+            app.current_user_role = app.get_user_role(id_number)
+            print(f"Usuario logueado con rol: {app.current_user_role}")
             self.show_success("Inicio de sesión exitoso")
             self.manager.current = 'principal'
 
     def on_create_account_press(self):
         self.manager.current = 'register'
 
-    def show_error(self, message):
-        popup = Popup(title='Error',
-                     content=Label(text=message),
-                     size_hint=(None, None), size=(300, 200))
-        popup.open()
-
-    def show_success(self, message):
-        popup = Popup(title='Éxito',
-                     content=Label(text=message),
-                     size_hint=(None, None), size=(300, 200))
-        popup.open()
-
-class RegisterScreen(Screen):
+class RegisterScreen(BaseScreen):
     def validate_registration(self, username, id_number, password, confirm_password):
         if not all([username, id_number, password, confirm_password]):
             self.show_error("Por favor complete todos los campos")
@@ -143,24 +156,11 @@ class RegisterScreen(Screen):
         if self.validate_registration(username, id_number, password, confirm_password):
             app = App.get_running_app()
             try:
-                # Intentar añadir el usuario
-                app.db.add_user(id_number, username, password, 'cliente')
+                app.db.add_user(id_number, username, password, 'client')
                 self.show_success("Registro exitoso")
                 self.manager.current = 'login'
             except Exception as e:
                 self.show_error(str(e))
-
-    def show_error(self, message):
-        popup = Popup(title='Error',
-                     content=Label(text=message),
-                     size_hint=(None, None), size=(300, 200))
-        popup.open()
-
-    def show_success(self, message):
-        popup = Popup(title='Éxito',
-                     content=Label(text=message),
-                     size_hint=(None, None), size=(300, 200))
-        popup.open()
 
 class ProductosRV(RecycleView):
     def __init__(self, **kwargs):
@@ -169,7 +169,7 @@ class ProductosRV(RecycleView):
     
     def load_products(self):
         app = App.get_running_app()
-        productos = app.db.get_all_products()  # Cambiado product_store por db
+        productos = app.db.get_all_products()
         self.data = [{
             'nombre': p['nombre'],
             'unidades': str(p['unidades']),
@@ -223,16 +223,28 @@ class AddProductPopup(Popup):
             return
             
         app = App.get_running_app()
-        app.db.add_product(nombre, unidades, costo)  # Cambiado product_store por db
+        app.db.add_product(nombre, unidades, costo)
         self.update_callback()
         self.dismiss()
 
     def show_error(self, message):
+        content = BoxLayout(orientation='vertical', padding=10)
+        label = Label(
+            text=message,
+            text_size=(280, None),
+            size_hint_y=None,
+            halign='center',
+            valign='middle'
+        )
+        label.bind(texture_size=lambda *x: setattr(label, 'height', label.texture_size[1]))
+        content.add_widget(label)
+        
         popup = Popup(
             title='Error',
-            content=Label(text=message),
+            content=content,
             size_hint=(None, None),
-            size=(300, 200)
+            size=(300, label.height + 100),
+            auto_dismiss=True
         )
         popup.open()
 
@@ -281,11 +293,9 @@ class UpdateProductPopup(Popup):
     def create_content(self):
         layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
         
-        # Mostrar datos actuales
         layout.add_widget(Label(text=f'Unidades actuales: {self.producto["unidades"]}'))
         layout.add_widget(Label(text=f'Costo actual: ${self.producto["costo"]:,}'))
         
-        # Inputs para nuevos valores
         self.unidades_input = TextInput(
             hint_text='Unidades adicionales',
             multiline=False,
@@ -318,12 +328,12 @@ class UpdateProductPopup(Popup):
             unidades_adicionales = int(self.unidades_input.text or '0')
             nuevo_costo = self.costo_input.text.strip()
             
-            if nuevo_costo and not nuevo_costo.isdigit():  # Corregido && por and
+            if nuevo_costo and not nuevo_costo.isdigit():
                 self.show_error("El costo debe ser un número")
                 return
                 
             app = App.get_running_app()
-            productos = app.db.get_all_products()  # Cambiado product_store por db
+            productos = app.db.get_all_products()
             
             for producto in productos:
                 if producto['nombre'] == self.producto['nombre']:
@@ -332,7 +342,7 @@ class UpdateProductPopup(Popup):
                         producto['costo'] = int(nuevo_costo)
                     break
             
-            app.db.update_product_units(self.producto['nombre'], producto['unidades'])  # Actualizado
+            app.db.update_product_units(self.producto['nombre'], producto['unidades'])
             self.update_callback()
             self.dismiss()
             
@@ -340,28 +350,38 @@ class UpdateProductPopup(Popup):
             self.show_error("Por favor ingrese valores válidos")
 
     def show_error(self, message):
+        content = BoxLayout(orientation='vertical', padding=10)
+        label = Label(
+            text=message,
+            text_size=(280, None),
+            size_hint_y=None,
+            halign='center',
+            valign='middle'
+        )
+        label.bind(texture_size=lambda *x: setattr(label, 'height', label.texture_size[1]))
+        content.add_widget(label)
+        
         popup = Popup(
             title='Error',
-            content=Label(text=message),
+            content=content,
             size_hint=(None, None),
-            size=(300, 200)
+            size=(300, label.height + 100),
+            auto_dismiss=True
         )
         popup.open()
 
-class PrincipalScreen(Screen):
+class PrincipalScreen(BaseScreen):
     def __init__(self, **kwargs):
         super(PrincipalScreen, self).__init__(**kwargs)
         self.productos_rv = ProductosRV()
     
     def on_enter(self):
         app = App.get_running_app()
-        print(f"Rol actual: {app.current_user_role}")  # Debug line
+        print(f"Rol actual: {app.current_user_role}")
         
-        # Actualizar productos
         self.productos_rv.load_products()
         self.ids.rv.data = self.productos_rv.data
         
-        # Actualizar visibilidad de botones
         self.ids.admin_btn.opacity = 1 if app.current_user_role == 'admin' else 0
         self.ids.admin_btn.disabled = not (app.current_user_role == 'admin')
         self.ids.users_btn.opacity = 1 if app.current_user_role == 'admin' else 0
@@ -383,7 +403,7 @@ class PrincipalScreen(Screen):
 
     def show_product_selection(self):
         app = App.get_running_app()
-        productos = app.db.get_all_products()  # Cambiado product_store por db
+        productos = app.db.get_all_products()
         
         content = BoxLayout(orientation='vertical', spacing=10, padding=10)
         scroll_layout = GridLayout(cols=1, spacing=5, size_hint_y=None)
@@ -428,7 +448,6 @@ class ClientDataPopup(Popup):
     def create_content(self):
         layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
         
-        # Tipo de documento (Spinner)
         self.tipo_doc = Spinner(
             text='Cédula de Ciudadanía',
             values=('Cédula de Ciudadanía', 'NIT', 'Cédula de Extranjería', 'Pasaporte'),
@@ -436,14 +455,12 @@ class ClientDataPopup(Popup):
             height='40dp'
         )
         
-        # Campos de entrada
         self.num_documento = TextInput(hint_text='Número de Documento', multiline=False)
         self.nombres = TextInput(hint_text='Nombres', multiline=False)
         self.apellidos = TextInput(hint_text='Apellidos', multiline=False)
         self.telefono = TextInput(hint_text='Número Telefónico', multiline=False)
         self.email = TextInput(hint_text='Correo Electrónico', multiline=False)
         
-        # Botón de generar
         generar_btn = Button(
             text='Generar PDF',
             size_hint_y=None,
@@ -452,7 +469,6 @@ class ClientDataPopup(Popup):
         )
         generar_btn.bind(on_press=self.submit)
         
-        # Añadir widgets al layout
         labels_inputs = [
             ('Tipo de Documento:', self.tipo_doc),
             ('Número de Documento:', self.num_documento),
@@ -477,7 +493,6 @@ class ClientDataPopup(Popup):
         return layout
 
     def submit(self, instance):
-        # Validar campos
         if not all([self.num_documento.text, self.nombres.text, self.apellidos.text,
                    self.telefono.text, self.email.text]):
             self.show_error("Por favor complete todos los campos")
@@ -496,15 +511,27 @@ class ClientDataPopup(Popup):
         self.generar_pdf_callback(cliente_data)
 
     def show_error(self, message):
+        content = BoxLayout(orientation='vertical', padding=10)
+        label = Label(
+            text=message,
+            text_size=(280, None),
+            size_hint_y=None,
+            halign='center',
+            valign='middle'
+        )
+        label.bind(texture_size=lambda *x: setattr(label, 'height', label.texture_size[1]))
+        content.add_widget(label)
+        
         popup = Popup(
             title='Error',
-            content=Label(text=message),
+            content=content,
             size_hint=(None, None),
-            size=(300, 200)
+            size=(300, label.height + 100),
+            auto_dismiss=True
         )
         popup.open()
 
-class CotizacionScreen(Screen):
+class CotizacionScreen(BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.productos = []
@@ -516,18 +543,17 @@ class CotizacionScreen(Screen):
 
     def on_enter(self):
         app = App.get_running_app()
-        self.productos = app.db.get_all_products()  # Cambiado product_store por db
+        self.productos = app.db.get_all_products()
         self.crear_tabla()
         
     def crear_tabla(self):
         self.ids.tabla_container.clear_widgets()
         
-        # Aumentar el ancho de las columnas
-        column_width = 250  # Aumentado de 200 a 250
+        column_width = 250
         
         header = GridLayout(cols=len(self.productos) + 1, 
                           size_hint_y=None, 
-                          height=60,  # Aumentado de 40 a 60
+                          height=60,
                           size_hint_x=None,
                           width=column_width * (len(self.productos) + 1))
         
@@ -537,7 +563,7 @@ class CotizacionScreen(Screen):
             color=[0,0,0,1],
             size_hint_x=None,
             width=column_width,
-            text_size=(column_width-20, None),  # Margen para el texto
+            text_size=(column_width-20, None),
             halign='center',
             valign='middle'
         ))
@@ -549,7 +575,7 @@ class CotizacionScreen(Screen):
                 color=[0,0,0,1],
                 size_hint_x=None,
                 width=column_width,
-                text_size=(column_width-20, None),  # Margen para el texto
+                text_size=(column_width-20, None),
                 halign='center',
                 valign='middle'
             ))
@@ -560,12 +586,12 @@ class CotizacionScreen(Screen):
             self.agregar_fila_ambiente(i + 1)
 
     def agregar_fila_ambiente(self, num):
-        column_width = 250  # Mismo ancho que en crear_tabla
+        column_width = 250
         
         fila = GridLayout(
             cols=len(self.productos) + 1,
             size_hint_y=None,
-            height=60,  # Aumentado para mejor legibilidad
+            height=60,
             size_hint_x=None,
             width=column_width * (len(self.productos) + 1)
         )
@@ -580,20 +606,18 @@ class CotizacionScreen(Screen):
             valign='middle'
         ))
         
-        # Crear inputs para cada producto manteniendo el orden
         for producto in self.productos:
             text_input = TextInput(
                 multiline=False,
                 input_filter='int',
-                text='',  # Cambiado de '0' a ''
-                hint_text='0',  # Agregado hint_text para mostrar 0 cuando está vacío
+                text='',
+                hint_text='0',
                 size_hint_x=None,
                 width=column_width,
                 height=40,
                 halign='center',
                 padding=(10, 10)
             )
-            # Almacenar referencia al producto
             setattr(text_input, 'producto_ref', producto)
             text_input.bind(
                 text=self.on_text_input_change,
@@ -604,8 +628,7 @@ class CotizacionScreen(Screen):
         self.ids.tabla_container.add_widget(fila)
 
     def on_text_input_change(self, instance, value):
-        """Maneja los cambios en el TextInput"""
-        if not value:  # Si está vacío
+        if not value:
             self.actualizar_totales()
             return
 
@@ -622,9 +645,8 @@ class CotizacionScreen(Screen):
                     f"En uso en otros ambientes: {total_otros}\n"
                     f"Disponibles: {disponibles}"
                 )
-                # Revertir a la cantidad disponible
                 instance.text = str(disponibles)
-                instance.readonly = True  # Bloquear entrada
+                instance.readonly = True
                 Clock.schedule_once(lambda dt: self.show_error(mensaje))
             
             self.actualizar_totales()
@@ -633,12 +655,10 @@ class CotizacionScreen(Screen):
             self.actualizar_totales()
 
     def on_focus(self, instance, value):
-        """Resetea readonly cuando el campo pierde el foco"""
-        if not value:  # Cuando pierde el foco
+        if not value:
             instance.readonly = False
 
     def calcular_total_otros(self, current_input, producto):
-        """Calcula el total de unidades usadas en otros campos"""
         filas = [widget for widget in self.ids.tabla_container.children 
                 if isinstance(widget, GridLayout)][:-1]
         
@@ -705,16 +725,23 @@ class CotizacionScreen(Screen):
             self._actualizando = False
 
     def show_error(self, message):
+        content = BoxLayout(orientation='vertical', padding=10)
+        label = Label(
+            text=message,
+            text_size=(280, None),
+            size_hint_y=None,
+            halign='center',
+            valign='middle'
+        )
+        label.bind(texture_size=lambda *x: setattr(label, 'height', label.texture_size[1]))
+        content.add_widget(label)
+        
         popup = Popup(
             title='Control de Inventario',
-            content=Label(
-                text=message,
-                text_size=(300, None),  # Ancho fijo, altura automática
-                halign='center',
-                valign='middle'
-            ),
+            content=content,
             size_hint=(None, None),
-            size=(350, 250)  # Tamaño aumentado para mostrar más información
+            size=(300, label.height + 100),
+            auto_dismiss=True
         )
         popup.open()
 
@@ -731,152 +758,195 @@ class CotizacionScreen(Screen):
             return join(expanduser('~'), 'Downloads')
 
     def generar_pdf(self):
-        # Cambiar a la pantalla del formulario
         self.manager.current = 'client_form'
     
     def generar_pdf_con_datos(self, cliente_data):
-        # Obtener directorio de descargas
-        downloads_dir = self.get_downloads_dir()
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = join(downloads_dir, f'cotizacion_{timestamp}.pdf')
-
-        # Configurar el documento
-        doc = SimpleDocTemplate(filename, pagesize=letter,
-                              rightMargin=50, leftMargin=50,
-                              topMargin=50, bottomMargin=50)
-        elements = []
-
-        # Estilos personalizados
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            textColor=colors.HexColor('#1E3A5F'),
-            spaceAfter=40,
-            fontSize=24,
-            alignment=1  # Centrado
-        )
-
-        ambiente_style = ParagraphStyle(
-            'AmbienteStyle',
-            parent=styles['Heading2'],
-            textColor=colors.HexColor('#2E4D7B'),
-            spaceAfter=15,
-            fontSize=14,
-            spaceBefore=20
-        )
-
-        total_style = ParagraphStyle(
-            'TotalStyle',
-            parent=styles['Normal'],
-            textColor=colors.HexColor('#1E3A5F'),
-            fontSize=12,
-            alignment=2  # Derecha
-        )
-
-        # Título y fecha
-        elements.append(Paragraph("Cotización de Productos", title_style))
-        elements.append(Paragraph(f"Fecha: {datetime.now().strftime('%d/%m/%Y')}", ambiente_style))
-        elements.append(Spacer(1, 20))
-
-        # Datos del cliente
-        elements.append(Paragraph("Información del Cliente", ambiente_style))
-        cliente_info = [
-            [Paragraph(f"Tipo de Documento: {cliente_data['tipo_documento']}", styles['Normal']), 
-             Paragraph(f"Número: {cliente_data['numero_documento']}", styles['Normal'])],
-            [Paragraph(f"Nombres: {cliente_data['nombres']}", styles['Normal']), 
-             Paragraph(f"Apellidos: {cliente_data['apellidos']}", styles['Normal'])],
-            [Paragraph(f"Teléfono: {cliente_data['telefono']}", styles['Normal']), 
-             Paragraph(f"Email: {cliente_data['email']}", styles['Normal'])]
-        ]
-        
-        # Ajustar el ancho de la tabla y sus estilos
-        cliente_table = Table(cliente_info, colWidths=[300, 200])  # Aumentar ancho de columnas
-        cliente_table.setStyle(TableStyle([
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1E3A5F')),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-            ('TOPPADDING', (0, 0), (-1, -1), 12),  # Añadir padding superior
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),  # Añadir padding izquierdo
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10), # Añadir padding derecho
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),    # Alinear texto a la izquierda
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E5E5')),  # Agregar bordes suaves
-        ]))
-        elements.append(cliente_table)
-        elements.append(Spacer(1, 20))
-
-        # Obtener datos por ambiente y ordenarlos de forma ascendente
-        filas = [widget for widget in self.ids.tabla_container.children 
-                if isinstance(widget, GridLayout)][:-1]
-        filas.reverse()  # Invertir el orden para que sea ascendente
-        
-        # Para cada ambiente
-        for fila in filas:
-            ambiente = fila.children[-1].text
-            inputs = [widget for widget in fila.children if isinstance(widget, TextInput)]
-            inputs.reverse()
+        try:
+            app = App.get_running_app()
+            valores = {
+                'subtotal': float(self.ids.valor_plan.text.replace('$', '').replace(',', '')),
+                'iva': float(self.ids.valor_iva.text.replace('$', '').replace(',', '')),
+                'total': float(self.ids.valor_total.text.replace('$', '').replace(',', ''))
+            }
             
-            # Solo procesar ambientes que tengan productos seleccionados
-            productos_ambiente = []
-            subtotal_ambiente = 0
+            # Recolectar detalles por ambiente
+            detalles_ambientes = {}
+            filas = [widget for widget in self.ids.tabla_container.children 
+                    if isinstance(widget, GridLayout)][:-1]
+            filas.reverse()
             
-            for input_widget, producto in zip(inputs, self.productos):
-                cantidad = int(input_widget.text or '0')
-                if cantidad > 0:
-                    subtotal_producto = cantidad * int(producto['costo'])
-                    productos_ambiente.append([
-                        producto['nombre'],
-                        str(cantidad),
-                        f"${int(producto['costo']):,}",
-                        f"${subtotal_producto:,}"
-                    ])
-                    subtotal_ambiente += subtotal_producto
-            
-            if productos_ambiente:
-                # Título del ambiente
-                elements.append(Paragraph(f"Resumen {ambiente}", ambiente_style))
+            for num_ambiente, fila in enumerate(filas, 1):
+                inputs = [widget for widget in fila.children if isinstance(widget, TextInput)]
+                inputs.reverse()
+                ambiente_detalles = {}
                 
-                # Tabla del ambiente
-                data = [['Producto', 'Cantidad', 'Valor Unit.', 'Subtotal']] + productos_ambiente
-                table = Table(data, colWidths=[200, 80, 100, 100])
-                table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E4D7B')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#2E4D7B')),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('ALIGN', (2, 1), (-1, -1), 'RIGHT'),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F5F8FB')),
-                ]))
-                elements.append(table)
-                elements.append(Paragraph(f"Subtotal {ambiente}: ${subtotal_ambiente:,}", total_style))
-                elements.append(Spacer(1, 10))
+                for input_widget, producto in zip(inputs, self.productos):
+                    cantidad = int(input_widget.text or '0')
+                    if cantidad > 0:
+                        ambiente_detalles[producto['id']] = {
+                            'cantidad': cantidad,
+                            'precio_unitario': float(producto['costo'])
+                        }
+                
+                if ambiente_detalles:  # Solo agregar ambiente si tiene productos
+                    detalles_ambientes[num_ambiente] = ambiente_detalles
+            
+            # Si no hay productos seleccionados, mostrar error
+            if not detalles_ambientes:
+                self.show_error("Debe seleccionar al menos un producto")
+                return
 
-        # Línea divisoria
-        elements.append(HRFlowable(
-            width="100%",
-            thickness=1,
-            color=colors.HexColor('#2E4D7B'),
-            spaceBefore=20,
-            spaceAfter=20
-        ))
+            # Crear primero la cotización principal
+            cotizacion_id = app.db.create_cotizacion(
+                usuario_id=int(app.current_user_id),
+                cliente_data=cliente_data,
+                valores=valores
+            )
 
-        # Totales finales
-        subtotal = float(self.ids.valor_plan.text.replace('$', '').replace(',', ''))
-        iva = float(self.ids.valor_iva.text.replace('$', '').replace(',', ''))
-        total = float(self.ids.valor_total.text.replace('$', '').replace(',', ''))
+            if not cotizacion_id:
+                raise Exception("Error al crear la cotización")
 
-        elements.extend([
-            Paragraph(f"Valor Plan Personalizado: ${subtotal:,.0f}", total_style),
-            Paragraph(f"IVA (19%): ${iva:,.0f}", total_style),
-            Paragraph(f"<b>Total: ${total:,.0f}</b>", total_style)
-        ])
+            # Luego insertar los detalles de cada ambiente
+            try:
+                for ambiente_num, productos in detalles_ambientes.items():
+                    for producto_id, detalle in productos.items():
+                        app.db._execute_query("""
+                            INSERT INTO cotizacion_detalles (
+                                cotizacion_id, ambiente, producto_id, 
+                                cantidad, precio_unitario
+                            ) VALUES (%s, %s, %s, %s, %s)
+                        """, (
+                            cotizacion_id, 
+                            ambiente_num,
+                            producto_id, 
+                            detalle['cantidad'],
+                            detalle['precio_unitario']
+                        ))
+            except Exception as e:
+                # Si falla, eliminar la cotización principal
+                app.db._execute_query("DELETE FROM cotizaciones WHERE id = %s", (cotizacion_id,))
+                raise Exception(f"Error guardando detalles: {str(e)}")
 
-        # Generar PDF
-        doc.build(elements)
-        self.actualizar_inventario()
-        self.show_success(f"PDF generado exitosamente en:\n{filename}")
+            # Generar PDF
+            downloads_dir = self.get_downloads_dir()
+            os.makedirs(downloads_dir, exist_ok=True)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = join(downloads_dir, f'cotizacion_{cotizacion_id}_{timestamp}.pdf')
+
+            # Crear el documento PDF
+            doc = SimpleDocTemplate(filename, pagesize=letter)
+            elements = []
+
+            # Título
+            styles = getSampleStyleSheet()
+            elements.append(Paragraph("Cotización de Productos", styles['Title']))
+            elements.append(Spacer(1, 20))
+
+            # Información del cliente
+            elements.append(Paragraph("Información del Cliente", styles['Heading2']))
+            cliente_info = [
+                ['Tipo de Documento:', cliente_data['tipo_documento']],
+                ['Número:', cliente_data['numero_documento']],
+                ['Nombres:', cliente_data['nombres']],
+                ['Apellidos:', cliente_data['apellidos']],
+                ['Teléfono:', cliente_data['telefono']],
+                ['Email:', cliente_data['email']]
+            ]
+            t = Table(cliente_info)
+            t.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            elements.append(t)
+            elements.append(Spacer(1, 20))
+
+            # Detalles por ambiente
+            filas = [widget for widget in self.ids.tabla_container.children 
+                    if isinstance(widget, GridLayout)][:-1]
+            filas.reverse()
+
+            for idx, fila in enumerate(filas, 1):
+                elements.append(Paragraph(f"Ambiente {idx}", styles['Heading3']))
+                
+                data = [['Producto', 'Cantidad', 'Precio Unit.', 'Subtotal']]
+                inputs = [w for w in fila.children if isinstance(w, TextInput)]
+                inputs.reverse()
+                
+                ambiente_total = 0
+                for input_widget, producto in zip(inputs, self.productos):
+                    cantidad = int(input_widget.text or '0')
+                    if cantidad > 0:
+                        subtotal = cantidad * float(producto['costo'])
+                        ambiente_total += subtotal
+                        data.append([
+                            producto['nombre'],
+                            str(cantidad),
+                            f"${producto['costo']:,.2f}",
+                            f"${subtotal:,.2f}"
+                        ])
+
+                if len(data) > 1:  # Si hay productos en este ambiente
+                    t = Table(data, colWidths=[200, 80, 100, 100])
+                    t.setStyle(TableStyle([
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ]))
+                    elements.append(t)
+                    elements.append(Paragraph(f"Total Ambiente {idx}: ${ambiente_total:,.2f}", styles['Normal']))
+                    elements.append(Spacer(1, 10))
+
+            # Totales
+            elements.append(Spacer(1, 20))
+            elements.append(Paragraph(f"Subtotal: ${valores['subtotal']:,.2f}", styles['Heading4']))
+            elements.append(Paragraph(f"IVA (19%): ${valores['iva']:,.2f}", styles['Heading4']))
+            elements.append(Paragraph(f"Total: ${valores['total']:,.2f}", styles['Heading2']))
+
+            # Generar el PDF
+            doc.build(elements)
+            
+            # Actualizar inventario
+            self.actualizar_inventario()
+            
+            # Mostrar modal de éxito
+            content = BoxLayout(orientation='vertical', spacing=10, padding=20)
+            content.add_widget(Label(
+                text=f"¡Cotización generada exitosamente!\n\n"
+                     f"ID de Cotización: {cotizacion_id}\n\n"
+                     f"PDF guardado en:\n{filename}",
+                halign='center',
+                text_size=(400, None),
+                size_hint_y=None,
+                height=200
+            ))
+            
+            ok_button = Button(
+                text="Aceptar",
+                size_hint=(None, None),
+                size=(150, 50),
+                pos_hint={'center_x': 0.5}
+            )
+            
+            content.add_widget(ok_button)
+            
+            popup = Popup(
+                title='PDF Generado',
+                content=content,
+                size_hint=(None, None),
+                size=(500, 300),
+                auto_dismiss=False
+            )
+            
+            ok_button.bind(on_press=popup.dismiss)
+            popup.open()
+
+        except Exception as e:
+            self.show_error(f"Error al generar la cotización: {str(e)}")
 
     def actualizar_inventario(self):
         app = App.get_running_app()
@@ -890,19 +960,30 @@ class CotizacionScreen(Screen):
                     print(f"Error actualizando {producto['nombre']}: {str(e)}")
                     continue
         
-        # Actualizar la vista de productos
         self.manager.get_screen('principal').update_products()
 
     def show_success(self, message):
+        content = BoxLayout(orientation='vertical', padding=10)
+        label = Label(
+            text=message,
+            text_size=(280, None),
+            size_hint_y=None,
+            halign='center',
+            valign='middle'
+        )
+        label.bind(texture_size=lambda *x: setattr(label, 'height', label.texture_size[1]))
+        content.add_widget(label)
+        
         popup = Popup(
             title='Éxito',
-            content=Label(text=message),
+            content=content,
             size_hint=(None, None),
-            size=(400, 200)
+            size=(300, label.height + 100),
+            auto_dismiss=True
         )
         popup.open()
 
-class UsersScreen(Screen):
+class UsersScreen(BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.current_user_id = None
@@ -910,12 +991,10 @@ class UsersScreen(Screen):
     def on_enter(self):
         self.load_users()
         app = App.get_running_app()
-        # Deshabilitar botones si no es admin
         if app.current_user_role != 'admin':
             self.disable_admin_actions()
     
     def disable_admin_actions(self):
-        # Deshabilitar los botones de acción en la lista de usuarios
         container = self.ids.users_container
         for widget in container.walk():
             if isinstance(widget, Button):
@@ -929,30 +1008,26 @@ class UsersScreen(Screen):
         container.clear_widgets()
         
         for user_id, user_data in users:
-            # ID - Convertir a string
             container.add_widget(Label(
-                text=str(user_id),  # Convertir a string
+                text=str(user_id),
                 color=(0,0,0,1),
                 size_hint_y=None,
                 height='40dp'
             ))
-            # Username
             container.add_widget(Label(
-                text=str(user_data['username']),  # Asegurar que sea string
+                text=str(user_data['username']),
                 color=(0,0,0,1),
                 size_hint_y=None,
                 height='40dp'
             ))
-            # Role
             container.add_widget(Label(
-                text=str(user_data['role']),  # Asegurar que sea string
+                text=str(user_data['role']),
                 color=(0,0,0,1),
                 size_hint_y=None,
                 height='40dp'
             ))
-            # Actions
             actions = BoxLayout(size_hint_y=None, height='40dp', spacing='10dp')
-            if user_id != 'admin':  # No permitir modificar al admin
+            if user_id != 'admin':
                 edit_btn = MDIconButton(
                     icon="pencil",
                     theme_text_color="Custom",
@@ -977,17 +1052,15 @@ class UsersScreen(Screen):
 
     def show_add_user_popup(self):
         content = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        # ... implementar popup para agregar usuario ...
 
     def show_edit_popup(self, user_id):
         app = App.get_running_app()
-        user_data = app.db.get_user_data(user_id)  # Cambiado user_store por db
+        user_data = app.db.get_user_data(user_id)
         if not user_data:
             return
 
         content = BoxLayout(orientation='vertical', padding=10, spacing=10)
         
-        # Campos de edición
         username_input = TextInput(
             text=user_data['username'],
             hint_text='Nombre de Usuario',
@@ -996,7 +1069,6 @@ class UsersScreen(Screen):
             height='40dp'
         )
         
-        # Spinner para selección de rol
         role_spinner = Spinner(
             text=user_data['role'],
             values=('admin', 'client'),
@@ -1004,7 +1076,6 @@ class UsersScreen(Screen):
             height='40dp'
         )
         
-        # Botón de actualizar (corregido el size_hint_y duplicado)
         update_btn = Button(
             text='Actualizar',
             size_hint_y=None,
@@ -1025,7 +1096,7 @@ class UsersScreen(Screen):
         )
 
         def update(instance):
-            app.db.update_user(  # Cambiado user_store por db
+            app.db.update_user(
                 user_id,
                 username=username_input.text,
                 role=role_spinner.text
@@ -1038,7 +1109,7 @@ class UsersScreen(Screen):
 
     def delete_user(self, user_id):
         app = App.get_running_app()
-        if app.db.delete_user(user_id):  # Cambiado user_store por db
+        if app.db.delete_user(user_id):
             self.load_users()
 
 class UsuarioRow(BoxLayout):
@@ -1058,7 +1129,6 @@ class NavDrawer(BoxLayout):
             self.rect = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self._update_rect, size=self._update_rect)
 
-        # Header
         header = BoxLayout(
             orientation='horizontal',
             size_hint_y=None,
@@ -1085,7 +1155,6 @@ class NavDrawer(BoxLayout):
         header.add_widget(close_btn)
         self.add_widget(header)
 
-        # Contenedor de botones
         buttons_container = BoxLayout(
             orientation='vertical',
             spacing='15dp',
@@ -1094,10 +1163,8 @@ class NavDrawer(BoxLayout):
             height='200dp'
         )
 
-        # Lista de botones
         buttons = []
         
-        # Botón Principal
         principal_btn = Button(
             text='Principal',
             size_hint_y=None,
@@ -1106,10 +1173,9 @@ class NavDrawer(BoxLayout):
             color=(1, 1, 1, 1),
             border=(2, 2, 2, 2)
         )
-        principal_btn.bind(on_press(lambda x: self.navigate_to('principal')))  # Corregido: eliminado paréntesis extra
+        principal_btn.bind(on_press(lambda x: self.navigate_to('principal')))
         buttons.append(principal_btn)
 
-        # Botón Cotización
         cotizacion_btn = Button(
             text='Cotización',
             size_hint_y=None,
@@ -1121,7 +1187,6 @@ class NavDrawer(BoxLayout):
         cotizacion_btn.bind(on_press(lambda x: self.navigate_to('cotizacion')))
         buttons.append(cotizacion_btn)
 
-        # Botón Usuarios (solo para admin)
         app = App.get_running_app()
         if app.current_user_role == 'admin':
             users_btn = Button(
@@ -1135,7 +1200,6 @@ class NavDrawer(BoxLayout):
             users_btn.bind(on_press(lambda x: self.navigate_to('users')))
             buttons.append(users_btn)
 
-        # Botón Cerrar Sesión
         logout_btn = Button(
             text='Cerrar Sesión',
             size_hint_y=None,
@@ -1147,7 +1211,6 @@ class NavDrawer(BoxLayout):
         logout_btn.bind(on_press(lambda x: self.navigate_to('login')))
         buttons.append(logout_btn)
 
-        # Añadir botones al contenedor
         for btn in buttons:
             with btn.canvas.before:
                 Color(1, 1, 1, 1)
@@ -1169,21 +1232,19 @@ class NavigationDrawer(ModalView):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.size_hint = (0.8, 1)
-        self.pos_hint = {'right': 0.8, 'top': 1}  # Posicionamiento en la parte superior
-        # Fondo azul translúcido para el overlay
-        self.background_color = (0, 0, 0.545, 0.5)  # rgba(0, 0, 139, 0.5)
+        self.pos_hint = {'right': 0.8, 'top': 1}
+        self.background_color = (0, 0, 0.545, 0.5)
         self.nav_drawer = NavDrawer()
         self.add_widget(self.nav_drawer)
         self.bind(on_touch_down=self.check_touch_close)
 
     def check_touch_close(self, instance, touch):
-        # Cerrar solo si el toque es fuera del drawer
         if not self.nav_drawer.collide_point(*touch.pos):
             anim = Animation(
                 background_color=(0, 0, 0.545, 0),
                 duration=0.2
             )
-            anim.bind(on_complete=lambda *args: self.dismiss())  # Corregido
+            anim.bind(on_complete=lambda *args: self.dismiss())
             anim.start(self)
             return True
         return super().on_touch_down(touch)
@@ -1197,14 +1258,13 @@ class NavBar(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class ClientFormScreen(Screen):
+class ClientFormScreen(BaseScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.productos = []
         self.total_productos = {}
         
     def on_enter(self):
-        # Obtener los datos de la pantalla de cotización
         cotizacion_screen = self.manager.get_screen('cotizacion')
         self.productos = cotizacion_screen.productos
         self.total_productos = cotizacion_screen.total_productos
@@ -1213,7 +1273,6 @@ class ClientFormScreen(Screen):
         self.total = float(cotizacion_screen.ids.valor_total.text.replace('$', '').replace(',', ''))
 
     def validate_fields(self):
-        # Validar número de documento
         num_documento = self.ids.num_documento.text.strip()
         if not num_documento.isdigit():
             self.show_error("El número de documento debe contener solo números")
@@ -1221,10 +1280,9 @@ class ClientFormScreen(Screen):
 
         if len(num_documento) < 8 or len(num_documento) > 12:
             self.show_error("El número de documento debe tener entre 8 y 12 dígitos")
-            self.ids.num_documento.text = num_documento[:12]  # Limitar a 12 dígitos
+            self.ids.num_documento.text = num_documento[:12]
             return False
 
-        # Validar nombres y apellidos (solo letras y espacios)
         if not all(c.isalpha() or c.isspace() for c in self.ids.nombres.text):
             self.show_error("Los nombres solo deben contener letras")
             return False
@@ -1233,7 +1291,6 @@ class ClientFormScreen(Screen):
             self.show_error("Los apellidos solo deben contener letras")
             return False
 
-        # Validar teléfono
         if not self.ids.telefono.text.isdigit():
             self.show_error("El teléfono debe contener solo números")
             return False
@@ -1242,7 +1299,6 @@ class ClientFormScreen(Screen):
             self.show_error("El teléfono debe tener 10 dígitos")
             return False
 
-        # Validar email
         if '@' not in self.ids.email.text:
             self.show_error("El email debe contener @")
             return False
@@ -1254,7 +1310,6 @@ class ClientFormScreen(Screen):
         return True
 
     def validate_email_format(self, email):
-        """Validación básica de formato de email"""
         import re
         pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         return re.match(pattern, email) is not None
@@ -1282,21 +1337,12 @@ class ClientFormScreen(Screen):
         cotizacion_screen.generar_pdf_con_datos(cliente_data)
         self.manager.current = 'cotizacion'
 
-    def show_error(self, message):
-        popup = Popup(
-            title='Error',
-            content=Label(text=message),
-            size_hint=(None, None),
-            size=(300, 200)
-        )
-        popup.open()
-
 class MainApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.current_user_id = None
         self.current_user_role = None
-        self.db = Database()  # Solo usar db, eliminar las referencias a user_store y product_store
+        self.db = Database()
         self.db.initialize_database()
 
     def validate_user(self, id_number, password):
@@ -1313,7 +1359,7 @@ class MainApp(MDApp):
         sm.add_widget(PrincipalScreen(name='principal'))
         sm.add_widget(CotizacionScreen(name='cotizacion'))
         sm.add_widget(UsersScreen(name='users'))
-        sm.add_widget(ClientFormScreen(name='client_form'))  # Agregar nueva pantalla
+        sm.add_widget(ClientFormScreen(name='client_form'))
         
         self.theme_cls.theme_style = "Light"
         self.theme_cls.primary_palette = "Blue"
@@ -1321,5 +1367,5 @@ class MainApp(MDApp):
         return sm
 
 if __name__ == '__main__':
-    MainApp().run()  # Fixed incomplete line
+    MainApp().run()
 
